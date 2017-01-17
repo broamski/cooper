@@ -273,9 +273,9 @@ func DisassociateTarget(svc *dynamodb.DynamoDB, uid string, tid string) error {
 			Key:                 item,
 			TableName:           aws.String(portalUserAssc.TableName),
 		})
-        if err != nil {
-            return err
-        }
+		if err != nil {
+			return err
+		}
 		log.Println("dissassociated user", uid, "from target", z)
 		return nil
 	}
