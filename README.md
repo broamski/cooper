@@ -1,5 +1,5 @@
 # cooper
-Broker access all of your AWS accounts with ease
+Broker access to all of your AWS accounts
 
 ----
 
