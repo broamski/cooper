@@ -61,8 +61,9 @@ func AddAdmin(svc *dynamodb.DynamoDB, adminuser AdminUser) error {
 		return err
 	}
 	_, err = svc.PutItem(&dynamodb.PutItemInput{
-		Item:      item,
-		TableName: aws.String(portalAdmins.TableName),
+		ConditionExpression: aws.String("attribute_not_exists(username)"),
+		Item:                item,
+		TableName:           aws.String(portalAdmins.TableName),
 	})
 	if err != nil {
 		return err
@@ -79,8 +80,9 @@ func RemoveAdmin(svc *dynamodb.DynamoDB, adminuser AdminUser) error {
 		return err
 	}
 	_, err = svc.DeleteItem(&dynamodb.DeleteItemInput{
-		Key:       item,
-		TableName: aws.String(portalAdmins.TableName),
+		ConditionExpression: aws.String("attribute_exists(username)"),
+		Key:                 item,
+		TableName:           aws.String(portalAdmins.TableName),
 	})
 	if err != nil {
 		return err
