@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+    "strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -28,6 +29,14 @@ func (t Target) TargetInvalid() bool {
 	}
 	return true
 }
+
+func (t Target) getAccountNumber() string {
+    // example ARNS
+    // arn:aws:iam::123456789012:role/S3Access
+    // arn:aws:sts::123456789012:federated-user/Bobo
+    return strings.Split(t.ARN, ":")[4]
+}
+
 
 // GetTargets provides a full list of available targets
 func GetTargets(svc *dynamodb.DynamoDB) ([]Target, error) {
@@ -146,9 +155,16 @@ type Association struct {
 	AssociationID string `dynamodbav:"assoc_id"`
 }
 
+type AssociationDetailed struct {
+    Assoc Association
+    TargetName string
+    AccountNumber string
+}
+
 // GetAssociations returns all of the associations for a particular user
-func GetAssociations(svc *dynamodb.DynamoDB, uid string) ([]Association, error) {
+func GetAssociations(svc *dynamodb.DynamoDB, uid string) ([]AssociationDetailed, error) {
 	t := []Association{}
+    newnew := make([]AssociationDetailed, 0, len(t))
 	ai := make([]map[string]*dynamodb.AttributeValue, 0)
 	resp, err := svc.Query(&dynamodb.QueryInput{
 		TableName:              aws.String(portalUserAssc.TableName),
@@ -160,7 +176,7 @@ func GetAssociations(svc *dynamodb.DynamoDB, uid string) ([]Association, error) 
 		},
 	})
 	if err != nil {
-		return t, err
+		return newnew, err
 	}
 	ai = append(ai, resp.Items...)
 
@@ -178,16 +194,28 @@ func GetAssociations(svc *dynamodb.DynamoDB, uid string) ([]Association, error) 
 			ExclusiveStartKey: resp.LastEvaluatedKey,
 		})
 		if err != nil {
-			return t, err
+			return newnew, err
 		}
 		ai = append(ai, resp.Items...)
 	}
 	err = dynamodbattribute.UnmarshalListOfMaps(ai, &t)
 	if err != nil {
-		return t, err
+		return newnew, err
 	}
 
-	return t, nil
+    // populate the association with target details
+    //newnew := make([]AssociationDetailed, 0, len(t))
+    for _, v := range t {
+        // should we catch this error?
+        t, _ := GetTarget(svc, v.AssociationID)
+        newnew = append(newnew, AssociationDetailed{
+            Assoc: v,
+            TargetName: t.Name,
+            AccountNumber: t.getAccountNumber(),
+        })
+    }
+
+	return newnew, nil
 }
 
 // IsAssociated determines if a particular user is associated with a target
