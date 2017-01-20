@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
-    "strings"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -31,12 +31,11 @@ func (t Target) TargetInvalid() bool {
 }
 
 func (t Target) getAccountNumber() string {
-    // example ARNS
-    // arn:aws:iam::123456789012:role/S3Access
-    // arn:aws:sts::123456789012:federated-user/Bobo
-    return strings.Split(t.ARN, ":")[4]
+	// example ARNS
+	// arn:aws:iam::123456789012:role/S3Access
+	// arn:aws:sts::123456789012:federated-user/Bobo
+	return strings.Split(t.ARN, ":")[4]
 }
-
 
 // GetTargets provides a full list of available targets
 func GetTargets(svc *dynamodb.DynamoDB) ([]Target, error) {
@@ -156,15 +155,15 @@ type Association struct {
 }
 
 type AssociationDetailed struct {
-    Assoc Association
-    TargetName string
-    AccountNumber string
+	Assoc         Association
+	TargetName    string
+	AccountNumber string
 }
 
 // GetAssociations returns all of the associations for a particular user
 func GetAssociations(svc *dynamodb.DynamoDB, uid string) ([]AssociationDetailed, error) {
 	t := []Association{}
-    newnew := make([]AssociationDetailed, 0, len(t))
+	newnew := make([]AssociationDetailed, 0, len(t))
 	ai := make([]map[string]*dynamodb.AttributeValue, 0)
 	resp, err := svc.Query(&dynamodb.QueryInput{
 		TableName:              aws.String(portalUserAssc.TableName),
@@ -203,17 +202,17 @@ func GetAssociations(svc *dynamodb.DynamoDB, uid string) ([]AssociationDetailed,
 		return newnew, err
 	}
 
-    // populate the association with target details
-    //newnew := make([]AssociationDetailed, 0, len(t))
-    for _, v := range t {
-        // should we catch this error?
-        t, _ := GetTarget(svc, v.AssociationID)
-        newnew = append(newnew, AssociationDetailed{
-            Assoc: v,
-            TargetName: t.Name,
-            AccountNumber: t.getAccountNumber(),
-        })
-    }
+	// populate the association with target details
+	//newnew := make([]AssociationDetailed, 0, len(t))
+	for _, v := range t {
+		// should we catch this error?
+		t, _ := GetTarget(svc, v.AssociationID)
+		newnew = append(newnew, AssociationDetailed{
+			Assoc:         v,
+			TargetName:    t.Name,
+			AccountNumber: t.getAccountNumber(),
+		})
+	}
 
 	return newnew, nil
 }

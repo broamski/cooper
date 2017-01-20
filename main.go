@@ -26,9 +26,9 @@ func main() {
 		awsregion = "us-east-1"
 	}
 	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(awsregion),
-        MaxRetries: aws.Int(3),
-    })
+		Region:     aws.String(awsregion),
+		MaxRetries: aws.Int(3),
+	})
 	if err != nil {
 		log.Fatalln("failed to setup the session", err)
 	}
@@ -63,7 +63,7 @@ func main() {
 	r.GET("/targets", SessionAuthMiddlware(), Targets(ddb))
 	r.POST("/become", SessionAuthMiddlware(), Becomer(ddb))
 
-    // TOTO: remove - used for setting a debug session
+	// TOTO: remove - used for setting a debug session
 	r.GET("/setcookie", func(c *gin.Context) {
 		session := sessions.Default(c)
 		var username = "brian@test.com"

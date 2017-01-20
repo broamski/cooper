@@ -14,11 +14,11 @@ func SessionAuthMiddlware() gin.HandlerFunc {
 		fmt.Println("middlewarez")
 		session := sessions.Default(c)
 		u := session.Get("username")
-        if u == nil {
-            c.Redirect(307,"/login")
-            c.Abort()
-            return
-        }
+		if u == nil {
+			c.Redirect(307, "/login")
+			c.Abort()
+			return
+		}
 		c.Next()
 	}
 }
@@ -44,9 +44,9 @@ func Index(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		u := session.Get("username")
 		as, err := GetAssociations(ddb, u.(string))
 		if err != nil {
-			// hack a new, non-session flash into the flashes map so that 
+			// hack a new, non-session flash into the flashes map so that
 			// an error can be displayed on the current loading page
-            gf := Flash{
+			gf := Flash{
 				Type:    "danger",
 				Message: fmt.Sprintf("Problem: '%s'", err),
 			}
@@ -64,18 +64,18 @@ func Index(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 }
 
 func Login(c *gin.Context) {
-        c.HTML(200, "login", gin.H{
-            "title": "Login",
-        })
+	c.HTML(200, "login", gin.H{
+		"title": "Login",
+	})
 }
 
 func Logout(c *gin.Context) {
-    fmt.Println("at logout")
+	fmt.Println("at logout")
 	session := sessions.Default(c)
 	session.Delete("username")
 	session.Save()
-    c.Redirect(307,"/")
-    return
+	c.Redirect(307, "/")
+	return
 }
 
 // Targets ok?
@@ -127,7 +127,7 @@ func Becomer(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			c.String(400, "bad payload")
 		}
 
-        // format validation, this should be merged into a larger validator
+		// format validation, this should be merged into a larger validator
 		if !form.ValidateFormat() {
 			florsh := Flash{
 				Type:    "warning",
