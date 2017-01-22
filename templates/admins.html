@@ -1,6 +1,27 @@
 {{ define "content" }}
 
-<h1>hello, {{.username}}</h1>
-<p>ya doin admin things now</p>
+  <h3>Add Administrators</h3> 
+ <form action="/admins/add" method="post">
+     <div class="form-inline">
+     <label class="admin-label" for="username">Email Address</label>
+     <input type="text" class="form-control admin-input" id="username" name="username">
+     <button type="submit" class="btn btn-primary btn-md">Add Administrator</button>
+     </div>
+ </form>
+
+ <hr/>
+
+{{ if .admins }}
+<p>There are {{ len .admins }} administratos</p>
+{{ range $key, $val := .admins }}
+  <form class="admin-list-form" action="/admins/remove" method="POST">
+    <div class="form-inline">
+      <label for="username">{{ $val.Username }}</label>
+      <button type="submit" class="btn btn-danger btn-xs" name="username" value="{{ $val.Username }}">Remove</button>
+    </div>
+ </form>
+{{ end }}
+
+{{ end }}
 
 {{ end }}

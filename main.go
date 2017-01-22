@@ -56,12 +56,14 @@ func main() {
 	var secret = []byte("TkQzrflu3SNitU3M3toyoGh9P4r0yxVfpXn8v921")
 	store := sessions.NewCookieStore(secret)
 	r.Use(sessions.Sessions("session", store))
-	r.GET("/", SessionAuthMiddlware(), Index(ddb))
-	r.GET("/admins", SessionAuthMiddlware(), Admins(ddb))
+	r.GET("/", Authenticated(), Index(ddb))
+	r.GET("/admins", AuthenticatedAdmin(ddb), Admins(ddb))
+	r.POST("/admins/add", AuthenticatedAdmin(ddb), AdminsAdd(ddb))
+	r.POST("/admins/remove", AuthenticatedAdmin(ddb), AdminsRemove(ddb))
 	r.GET("/login", Login)
-	r.GET("/logout", SessionAuthMiddlware(), Logout)
-	r.GET("/targets", SessionAuthMiddlware(), Targets(ddb))
-	r.POST("/become", SessionAuthMiddlware(), Becomer(ddb))
+	r.GET("/logout", Authenticated(), Logout)
+	r.GET("/targets", AuthenticatedAdmin(ddb), Targets(ddb))
+	r.POST("/become", Authenticated(), Becomer(ddb))
 
 	// TOTO: remove - used for setting a debug session
 	r.GET("/setcookie", func(c *gin.Context) {

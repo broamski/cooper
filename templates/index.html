@@ -1,5 +1,6 @@
 {{ define "content" }}
 
+{{ if .assoc }}
 <p>hello, {{.username}}.</p>
 <p>The selected <strong>Target</strong> will determine your level of access for the <strong>Duration</strong> of the session.</p>
 <form class="form-inline" method="post" action="/become">
@@ -30,4 +31,5 @@
   <button type="submit" class="btn btn-primary">Become</button>
 </form>
 
+{{ end}}
 {{ end }}

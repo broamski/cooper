@@ -11,7 +11,28 @@ import (
 
 // AdminUser defines what an administrative user looks like
 type AdminUser struct {
-	Username string `json:"username"`
+	Username string `form:"username" json:"username" binding:"required"`
+}
+
+// GetAdmin gets an admin..
+func GetAdmin(svc *dynamodb.DynamoDB, uid string) (AdminUser, error) {
+	resp, err := svc.GetItem(&dynamodb.GetItemInput{
+		TableName: aws.String(portalAdmins.TableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"username": {
+				S: aws.String(uid),
+			},
+		},
+	})
+	if err != nil {
+		return AdminUser{}, err
+	}
+	t := AdminUser{}
+	err = dynamodbattribute.UnmarshalMap(resp.Item, &t)
+	if err != nil {
+		return AdminUser{}, err
+	}
+	return t, nil
 }
 
 // GetAdmins returns a slice of all administrators, it implements

@@ -9,9 +9,9 @@ import (
 	"gopkg.in/gin-gonic/gin.v1"
 )
 
-func SessionAuthMiddlware() gin.HandlerFunc {
+func Authenticated() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fmt.Println("middlewarez")
+		fmt.Println("auth middleware")
 		session := sessions.Default(c)
 		u := session.Get("username")
 		if u == nil {
@@ -23,16 +23,146 @@ func SessionAuthMiddlware() gin.HandlerFunc {
 	}
 }
 
+func IsAdmin(ddb *dynamodb.DynamoDB, uid string) bool {
+	a, err := GetAdmin(ddb, u.(string))
+	if err != nil {
+        fmt.Println("error:", err)
+		return false
+	}
+    if a != (AdminUser{}) {
+        return true
+    }
+    return false
+}
+
+func AuthenticatedAdmin(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		fmt.Println("admin middleware")
+		session := sessions.Default(c)
+		u := session.Get("username")
+		if u == nil {
+			c.Redirect(307, "/login")
+			c.Abort()
+			return
+		}
+		a, err := GetAdmin(ddb, u.(string))
+		if err != nil {
+			session.AddFlash(Flash{
+				Type:    "danger",
+				Message: "there was a problem checking your authorization",
+			})
+			session.Save()
+			c.Redirect(307, "/login")
+			c.Abort()
+			return
+		}
+		if a == (AdminUser{}) {
+			session.AddFlash(Flash{
+				Type:    "danger",
+				Message: fmt.Sprintf("you are not authorized to view %s", c.Request.URL.Path),
+			})
+			session.Save()
+			c.Redirect(307, "/")
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
+
 // Admins ok?
 func Admins(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		session := sessions.Default(c)
-		u := session.Get("username")
+		flashes := session.Flashes()
+		admins, err := GetAdmins(ddb)
+		if err != nil {
+			session.AddFlash(Flash{
+				Type:    "danger",
+				Message: fmt.Sprintf("An error occured retrieving admins list: %s", err),
+			})
+			session.Save()
+		}
+		session.Save()
 		c.HTML(200, "admins", gin.H{
-			"title":    "admins",
-			"header":   "cooper admins",
-			"username": u,
+			"title":   "admins",
+			"admins":  admins,
+			"flashes": flashes,
 		})
+	}
+	return gin.HandlerFunc(fn)
+}
+
+func AdminsAdd(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
+	fn := func(c *gin.Context) {
+		session := sessions.Default(c)
+		var form AdminUser
+		err := c.Bind(&form)
+		if err != nil {
+			fmt.Println(err)
+			session.AddFlash(Flash{
+				Type:    "danger",
+				Message: "username missing or invalid",
+			})
+			session.Save()
+			c.Redirect(302, "some bad shit happened")
+			return
+		}
+		err = AddAdmin(ddb, form)
+		if err != nil {
+			fmt.Println(err)
+			session.AddFlash(Flash{
+				Type:    "danger",
+				Message: fmt.Sprintf("error adding admin %s: %s", form.Username, err),
+			})
+			session.Save()
+			c.Redirect(302, "/admins")
+			return
+		}
+		session.AddFlash(Flash{
+			Type:    "success",
+			Message: fmt.Sprintf("added admin: %s", form.Username),
+		})
+		session.Save()
+		c.Redirect(302, "/admins")
+		return
+	}
+	return gin.HandlerFunc(fn)
+}
+
+func AdminsRemove(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
+	fn := func(c *gin.Context) {
+		session := sessions.Default(c)
+		var form AdminUser
+		err := c.Bind(&form)
+		if err != nil {
+			fmt.Println(err)
+			session.AddFlash(Flash{
+				Type:    "danger",
+				Message: "username missing or invalid",
+			})
+			session.Save()
+			c.Redirect(302, "some bad shit happened")
+			return
+		}
+		err = RemoveAdmin(ddb, form)
+		if err != nil {
+			fmt.Println(err)
+			session.AddFlash(Flash{
+				Type:    "danger",
+				Message: fmt.Sprintf("error adding admin %s: %s", form.Username, err),
+			})
+			session.Save()
+			c.Redirect(302, "/admins")
+			return
+		}
+		session.AddFlash(Flash{
+			Type:    "success",
+			Message: fmt.Sprintf("removed admin: %s", form.Username),
+		})
+		session.Save()
+		c.Redirect(302, "/admins")
+		return
 	}
 	return gin.HandlerFunc(fn)
 }
@@ -121,7 +251,6 @@ func Becomer(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		fmt.Println("Hi", who, "!")
 		var form Become
 		err := c.Bind(&form)
-		fmt.Println(form)
 		if err != nil {
 			fmt.Println(err)
 			c.String(400, "bad payload")
@@ -179,7 +308,6 @@ func BecomerOld(svc *dynamodb.DynamoDB, b Become) error {
 		case "user":
 			fmt.Println("getting credentials by GetFederationToken")
 		}
-
 		switch b.Format {
 		case "console":
 			Portalize()

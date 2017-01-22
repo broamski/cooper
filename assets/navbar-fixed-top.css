@@ -14,3 +14,12 @@ body {
 #target_format {
   width: 125px;
 }
+
+.admin-label {
+    font-size: 20px;
+    font-weight: normal;
+}
+
+input#username.form-control.admin-input {
+    width: 350px;
+}

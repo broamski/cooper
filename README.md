@@ -37,3 +37,8 @@ Assumption Targets
  - Federated Users
  
 **High Security Areas** - If an Admin user is operating within a sensitive area, require the users setup a local TOTP that they must provide in order to perform the particular operation.
+
+
+-- #### Todo:
+- [ ] DRY a bunch of code
+- [ ] find a way to define FunMaps with the current template engine, specfically for checking if we should display the Admin and Management links in the nav bar
