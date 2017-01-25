@@ -136,23 +136,23 @@ func UpdateTarget(svc *dynamodb.DynamoDB, target Target) error {
 	if err != nil {
 		return err
 	}
-    key := make(map[string]*dynamodb.AttributeValue)
-    key["target_id"] = item["target_id"]
-    delete(item, "target_id")
-    // convert to dynamodb.AttributeValueUpdate because there is no unmarshal function
-    updates := make(map[string]*dynamodb.AttributeValueUpdate)
-    for k, v := range item {
-        updates[k] = &dynamodb.AttributeValueUpdate{
-            Action: aws.String("PUT"),
-            Value: v,
-        }
-    }
-    fmt.Println(updates)
+	key := make(map[string]*dynamodb.AttributeValue)
+	key["target_id"] = item["target_id"]
+	delete(item, "target_id")
+	// convert to dynamodb.AttributeValueUpdate because there is no unmarshal function
+	updates := make(map[string]*dynamodb.AttributeValueUpdate)
+	for k, v := range item {
+		updates[k] = &dynamodb.AttributeValueUpdate{
+			Action: aws.String("PUT"),
+			Value:  v,
+		}
+	}
+	fmt.Println(updates)
 	//ConditionExpression: aws.String("attribute_exists(target_id)"),
 	_, err = svc.UpdateItem(&dynamodb.UpdateItemInput{
-		Key:                 key,
-        AttributeUpdates: updates,
-		TableName:           aws.String(portalTargets.TableName),
+		Key:              key,
+		AttributeUpdates: updates,
+		TableName:        aws.String(portalTargets.TableName),
 	})
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
@@ -193,33 +193,33 @@ func RemoveTarget(svc *dynamodb.DynamoDB, tid string) error {
 	// ------
 
 	// scan for assocations ties to this target, to eventually delete
-    ai := make([]map[string]*dynamodb.AttributeValue, 0)
-    params := &dynamodb.ScanInput{
-        TableName:        aws.String(portalUserAssc.TableName),
-        FilterExpression: aws.String("assoc_id = :tid"),
-        ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-            ":tid": {
-                S: aws.String(tid),
-            },
-        },
-    }
-    resp, err := svc.Scan(params)
-    ai = append(ai, resp.Items...)
+	ai := make([]map[string]*dynamodb.AttributeValue, 0)
+	params := &dynamodb.ScanInput{
+		TableName:        aws.String(portalUserAssc.TableName),
+		FilterExpression: aws.String("assoc_id = :tid"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":tid": {
+				S: aws.String(tid),
+			},
+		},
+	}
+	resp, err := svc.Scan(params)
+	ai = append(ai, resp.Items...)
 
-    for len(resp.LastEvaluatedKey) > 0 {
-        fmt.Println("max number of results returned, processing next batch")
-        params := &dynamodb.ScanInput{
-            TableName:        aws.String(portalUserAssc.TableName),
-            FilterExpression: aws.String("assoc_id = :tid"),
-            ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
-                ":tid": {
-                    S: aws.String(tid),
-                },
-            },
-        }
-        resp, err = svc.Scan(params)
-        ai = append(ai, resp.Items...)
-    }
+	for len(resp.LastEvaluatedKey) > 0 {
+		fmt.Println("max number of results returned, processing next batch")
+		params := &dynamodb.ScanInput{
+			TableName:        aws.String(portalUserAssc.TableName),
+			FilterExpression: aws.String("assoc_id = :tid"),
+			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+				":tid": {
+					S: aws.String(tid),
+				},
+			},
+		}
+		resp, err = svc.Scan(params)
+		ai = append(ai, resp.Items...)
+	}
 	fmt.Println(ai)
 	for _, v := range ai {
 		_, err = svc.DeleteItem(&dynamodb.DeleteItemInput{
@@ -399,7 +399,7 @@ type userlist struct {
 }
 
 func GetTargetUsers(svc *dynamodb.DynamoDB, tid string) ([]userlist, error) {
-    items := []userlist{}
+	items := []userlist{}
 	ai := make([]map[string]*dynamodb.AttributeValue, 0)
 
 	params := &dynamodb.ScanInput{
@@ -413,9 +413,9 @@ func GetTargetUsers(svc *dynamodb.DynamoDB, tid string) ([]userlist, error) {
 	}
 	resp, err := svc.Scan(params)
 	ai = append(ai, resp.Items...)
-    if err != nil {
-        return []userlist{}, err
-    }
+	if err != nil {
+		return []userlist{}, err
+	}
 
 	for len(resp.LastEvaluatedKey) > 0 {
 		fmt.Println("max number of results returned, processing next batch")

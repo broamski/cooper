@@ -58,7 +58,7 @@ func main() {
 	r := gin.Default()
 	r.Static("/assets", "./assets")
 	r.HTMLRender = templates
-    // option to provide this is env var
+	// option to provide this is env var
 	var secret = []byte("TkQzrflu3SNitU3M3toyoGh9P4r0yxVfpXn8v921")
 	store := sessions.NewCookieStore(secret)
 	r.Use(sessions.Sessions("session", store))
@@ -75,7 +75,7 @@ func main() {
 	r.POST("/targets/update", AuthenticatedAdmin(ddb), TargetsUpdate(ddb))
 	r.POST("/targets/associate", AuthenticatedAdmin(ddb), TargetsAssoc(ddb))
 	r.POST("/targets/disassociate", AuthenticatedAdmin(ddb), TargetsDisassoc(ddb))
-    r.GET("/targets/details/:targetid", AuthenticatedAdmin(ddb), TargetsDetails(ddb))
+	r.GET("/targets/details/:targetid", AuthenticatedAdmin(ddb), TargetsDetails(ddb))
 	r.POST("/become", Authenticated(), Becomer(ddb))
 
 	// TOTO: remove - used for setting a debug session
@@ -86,7 +86,7 @@ func main() {
 		session.Save()
 		c.JSON(200, gin.H{"username": username})
 	})
-    // set cookie for second testing user
+	// set cookie for second testing user
 	r.GET("/setcookie2", func(c *gin.Context) {
 		session := sessions.Default(c)
 		var username = "brian@example.com"
