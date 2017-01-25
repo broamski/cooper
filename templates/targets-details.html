@@ -1,0 +1,59 @@
+{{ define "content" }}
+
+<h3>Target: {{ .target.Name }}</h3>
+<hr/>
+<form method="post">
+  <div class="form-group">
+  <input type="text" class="form-control" id="InputAssociateRoles" name="username" placeholder="test@example.com">
+  <input type="hidden" name="assoc_id" value="{{ .target.ID }}">
+  <button type="submit" formaction="/targets/associate" class="btn btn-info">Associate Target To User</button>
+  </div>
+</form>
+
+<hr/>
+<p>User Assocations:{{ len .users }}</p>
+<table class="table table-striped table-bordered">
+  <tbody>
+{{ range $key, $val := .users }}
+    <tr>
+      <td><a href="/targets/search?username={{ $val.Username }}">{{ $val.Username }}</td>
+    </tr>
+{{ end }}
+  </tbody>
+</table>
+
+<hr/>
+<h3>Edit Target</h3>
+<form method="post">
+  <input type="hidden" name="target_id" value="{{ .target.ID }}">
+  <div class="form-group">
+    <label for="target_name">Target Name</label>
+    <input type="text" class="form-control" id="target_name" name="target_name" value="{{ .target.Name }} ">
+  </div>
+  <div class="form-group">
+    <label for="target_type">Target Type</label>
+    <select class="form-control" name="target_type" id="target_type">
+    <option value="role" {{ if eq .target.Type "role"}}selected{{ end }}>IAM Role</option>
+    <option value="user" {{ if eq .target.Type "user"}}selected{{ end }}>Federated IAM User</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="target_user">Target ARN</label>
+    <input type="text" class="form-control" id="target_arn" name="target_arn" value="{{ .target.ARN }}">
+  </div>
+  <div class="form-group">
+    <label for="target_external_id">External ID</label>
+    <input type="text" class="form-control" id="target_external_id" name="target_external_id" value="{{ .target.ExternalID}}">
+  </div>
+  <div class="form-group">
+    <label for="target_external_id">Federation Keys</label>
+    <var>Only applicable for targets of type: Federation User</var>
+    <input type="text" class="form-control" id="fed_keys" name="fed_keys">
+  </div>
+  <div class="form-group">
+    <button type="submit" formaction="/targets/update" method="post" class="btn btn-primary">Update Target</button></br></br>
+    <button type="submit" formaction="/targets/remove" method="post" class="btn btn-danger">Delete Target</button></br></br>
+  </div>
+</form>
+
+{{ end }}

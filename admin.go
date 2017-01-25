@@ -14,7 +14,7 @@ type AdminUser struct {
 	Username string `form:"username" json:"username" binding:"required"`
 }
 
-// GetAdmin gets an admin..
+// GetAdmin returns an AdminUser when provided a user ID
 func GetAdmin(svc *dynamodb.DynamoDB, uid string) (AdminUser, error) {
 	resp, err := svc.GetItem(&dynamodb.GetItemInput{
 		TableName: aws.String(portalAdmins.TableName),
@@ -75,8 +75,6 @@ func GetAdmins(svc *dynamodb.DynamoDB) ([]AdminUser, error) {
 
 // AddAdmin adds an administrator to the system
 func AddAdmin(svc *dynamodb.DynamoDB, adminuser AdminUser) error {
-	log.Println("adding administrative user:", adminuser)
-
 	item, err := dynamodbattribute.MarshalMap(adminuser)
 	if err != nil {
 		return err
@@ -89,13 +87,12 @@ func AddAdmin(svc *dynamodb.DynamoDB, adminuser AdminUser) error {
 	if err != nil {
 		return err
 	}
+	log.Println("added administrative user:", adminuser)
 	return nil
 }
 
 // RemoveAdmin removes an administrator from the system
 func RemoveAdmin(svc *dynamodb.DynamoDB, adminuser AdminUser) error {
-	log.Println("removing administrative user:", adminuser)
-
 	item, err := dynamodbattribute.MarshalMap(adminuser)
 	if err != nil {
 		return err
@@ -108,5 +105,6 @@ func RemoveAdmin(svc *dynamodb.DynamoDB, adminuser AdminUser) error {
 	if err != nil {
 		return err
 	}
+	log.Println("removed administrative user:", adminuser)
 	return nil
 }

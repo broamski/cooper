@@ -13,10 +13,11 @@ import (
 
 // Target defines what can be assumed in an AWS account
 type Target struct {
-	ID   string `dynamodbav:"target_id"`
-	Name string
-	ARN  string
-	Type string
+	ID         string `dynamodbav:"target_id" form:"target_id" json:"target_id"`
+	Name       string `form:"target_name" json:"target_name" binding:"required"`
+	ARN        string `form:"target_arn" json:"target_arn" binding:"required"`
+	Type       string `form:"target_type" json:"target_type" binding:"required"`
+	ExternalID string `form:"target_external_id" json:"target_external_id"`
 }
 
 // TargetInvalid checks to see if a proper target type is being provided
@@ -31,10 +32,14 @@ func (t Target) TargetInvalid() bool {
 }
 
 func (t Target) getAccountNumber() string {
-	// example ARNS
+	// example ARNs
 	// arn:aws:iam::123456789012:role/S3Access
 	// arn:aws:sts::123456789012:federated-user/Bobo
-	return strings.Split(t.ARN, ":")[4]
+	splitARN := strings.Split(t.ARN, ":")
+	if len(splitARN) != 6 {
+		return ""
+	}
+	return splitARN[4]
 }
 
 // GetTargets provides a full list of available targets
@@ -122,6 +127,46 @@ func AddTarget(svc *dynamodb.DynamoDB, target Target) error {
 	return nil
 }
 
+func UpdateTarget(svc *dynamodb.DynamoDB, target Target) error {
+	if target.TargetInvalid() {
+		return fmt.Errorf("target type of %v is invalid", target.Type)
+	}
+
+	item, err := dynamodbattribute.MarshalMap(target)
+	if err != nil {
+		return err
+	}
+    key := make(map[string]*dynamodb.AttributeValue)
+    key["target_id"] = item["target_id"]
+    delete(item, "target_id")
+    // convert to dynamodb.AttributeValueUpdate because there is no unmarshal function
+    updates := make(map[string]*dynamodb.AttributeValueUpdate)
+    for k, v := range item {
+        updates[k] = &dynamodb.AttributeValueUpdate{
+            Action: aws.String("PUT"),
+            Value: v,
+        }
+    }
+    fmt.Println(updates)
+	//ConditionExpression: aws.String("attribute_exists(target_id)"),
+	_, err = svc.UpdateItem(&dynamodb.UpdateItemInput{
+		Key:                 key,
+        AttributeUpdates: updates,
+		TableName:           aws.String(portalTargets.TableName),
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			case "ConditionalCheckFailedException":
+				return fmt.Errorf("the target %+v doesn't exist, so i can't update it", target)
+			}
+		}
+		return err
+	}
+	log.Println(fmt.Sprintf("updated target: %+v", target))
+	return nil
+}
+
 // RemoveTarget removes a target using a provided target id
 func RemoveTarget(svc *dynamodb.DynamoDB, tid string) error {
 	z, _ := GetTarget(svc, tid)
@@ -144,6 +189,46 @@ func RemoveTarget(svc *dynamodb.DynamoDB, tid string) error {
 		}
 		return err
 	}
+
+	// ------
+
+	// scan for assocations ties to this target, to eventually delete
+    ai := make([]map[string]*dynamodb.AttributeValue, 0)
+    params := &dynamodb.ScanInput{
+        TableName:        aws.String(portalUserAssc.TableName),
+        FilterExpression: aws.String("assoc_id = :tid"),
+        ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+            ":tid": {
+                S: aws.String(tid),
+            },
+        },
+    }
+    resp, err := svc.Scan(params)
+    ai = append(ai, resp.Items...)
+
+    for len(resp.LastEvaluatedKey) > 0 {
+        fmt.Println("max number of results returned, processing next batch")
+        params := &dynamodb.ScanInput{
+            TableName:        aws.String(portalUserAssc.TableName),
+            FilterExpression: aws.String("assoc_id = :tid"),
+            ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+                ":tid": {
+                    S: aws.String(tid),
+                },
+            },
+        }
+        resp, err = svc.Scan(params)
+        ai = append(ai, resp.Items...)
+    }
+	fmt.Println(ai)
+	for _, v := range ai {
+		_, err = svc.DeleteItem(&dynamodb.DeleteItemInput{
+			ConditionExpression: aws.String("attribute_exists(username)"),
+			Key:                 v,
+			TableName:           aws.String(portalUserAssc.TableName),
+		})
+	}
+
 	log.Println(fmt.Sprintf("removed target %+v", z))
 	return nil
 }
@@ -213,7 +298,7 @@ func GetAssociations(svc *dynamodb.DynamoDB, uid string) ([]AssociationDetailed,
 			AccountNumber: t.getAccountNumber(),
 		})
 	}
-
+	fmt.Println(newnew)
 	return newnew, nil
 }
 
@@ -307,4 +392,54 @@ func DisassociateTarget(svc *dynamodb.DynamoDB, uid string, tid string) error {
 		return nil
 	}
 	return fmt.Errorf("user %v is not associated with target %v", uid, z)
+}
+
+type userlist struct {
+	Username string `dynamodbav:"username"`
+}
+
+func GetTargetUsers(svc *dynamodb.DynamoDB, tid string) ([]userlist, error) {
+    items := []userlist{}
+	ai := make([]map[string]*dynamodb.AttributeValue, 0)
+
+	params := &dynamodb.ScanInput{
+		TableName:        aws.String(portalUserAssc.TableName),
+		FilterExpression: aws.String("assoc_id = :tid"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":tid": {
+				S: aws.String(tid),
+			},
+		},
+	}
+	resp, err := svc.Scan(params)
+	ai = append(ai, resp.Items...)
+    if err != nil {
+        return []userlist{}, err
+    }
+
+	for len(resp.LastEvaluatedKey) > 0 {
+		fmt.Println("max number of results returned, processing next batch")
+		params := &dynamodb.ScanInput{
+			TableName:        aws.String(portalUserAssc.TableName),
+			FilterExpression: aws.String("assoc_id = :tid"),
+			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+				":tid": {
+					S: aws.String(tid),
+				},
+			},
+		}
+		resp, err = svc.Scan(params)
+		if err != nil {
+			return []userlist{}, err
+		}
+		ai = append(ai, resp.Items...)
+	}
+	dynamodbattribute.UnmarshalListOfMaps(ai, &items)
+	err = dynamodbattribute.UnmarshalListOfMaps(ai, &items)
+	if err != nil {
+		return []userlist{}, err
+	}
+	fmt.Println(items)
+	return items, nil
+
 }

@@ -1,0 +1,20 @@
+{{ define "content" }}
+
+<h3>User Targets available to: {{ .usersearch }}</h3>
+<form method="post" action="/targets/disassociate">
+  <input type="hidden" name="username" value="{{ .usersearch }}">
+{{ range $key, $value := .utargets }}
+
+<div class="radio">
+  <label>
+    <input type="radio" name="assoc_id" id="assoc_id" value="{{ $value.Assoc.AssociationID }}" >
+    {{ $value.TargetName }}
+  </label>
+</div>
+
+{{ end }}
+<button type="submit" class="btn btn-danger">Remove Selected Assocation</button>
+<a href="/targets" class="btn btn-primary" role="button">Back</a>
+</form>
+
+{{ end }}

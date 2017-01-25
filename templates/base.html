@@ -31,8 +31,10 @@
         </div>
         <div id="navbar" class="navbar-collapse collapse">
           <ul class="nav navbar-nav">
-            <li><a href="/admins">Admins</a></li>
+            {{ if datadmin }}
             <li><a href="/targets">Target Management</a></li>
+            <li><a href="/admins">Admins</a></li>
+            {{ end }}
           </ul>
           <ul class="nav navbar-nav navbar-right">
             <li><a href="/logout">Logout</a></li>
@@ -40,7 +42,6 @@
         </div><!--/.nav-collapse -->
       </div>
     </nav>
-
     <div class="container">
       {{if .flashes}} 
         {{ range $key, $val := .flashes }}

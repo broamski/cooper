@@ -1,6 +1,64 @@
 {{ define "content" }}
 
-<h1>hello, {{.username}}</h1>
-<p>ya doin target things now</p>
+<h3>User Search</h3>
+<form class="form-inline" method="get" action="/targets/search">
+  <div class="form-group">
+    <input type="text" class="form-control" id="search_username" name="username">
+  </div>
+  <button type="submit" class="btn btn-default">Show Associated Targets</button>
+  <p class="help-block">List all target assocations for the provided user</p>
+</form>
+    
+<hr/>
+
+<h3>Available Targets</h3>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Target Name</th>
+      <th>Target ARN</th>
+      <th>Target ID</th>
+     </tr>
+  </thead>
+  
+  <tbody>
+{{ range $key, $value := .targets }}
+	 <tr>
+	   <td><a href="/targets/details/{{ $value.ID }}">{{ $value.Name }}</a></td>
+	   <td><a href="/targets/details/{{ $value.ID }}">{{ $value.ARN }}</a></td>
+	   <td><a href="/targets/details/{{ $value.ID }}">{{ $value.ID }}</a></td>
+    </tr>
+{{ end }}
+  </tbody>
+</table>
+<hr/>
+<form method="post" action="/targets/add">
+  <div class="form-group">
+    <label for="target_name">Target Name</label>
+    <input type="text" class="form-control" id="target_name" name="target_name">
+  </div>
+  <div class="form-group">
+    <label for="target_type">Target Type</label>
+    <select class="form-control" id="target_type" name="target_type">
+    <option value="role">IAM Role</option>
+    <option value="user">Federated IAM User</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label for="target_arn">Target ARN</label>
+    <input type="text" class="form-control" id="target_arn" name="target_arn">
+  </div>
+  <div class="form-group">
+    <label for="target_external_id">External ID</label>
+	<var>Only applicable for targets of type: IAM Role</var>
+    <input type="text" class="form-control" id="target_external_id" name="target_external_id">
+  </div>
+  <div class="form-group">
+    <label for="target_external_id">Federation Keys</label>
+	<var>Only applicable for targets of type: Federation User</var>
+    <input type="text" class="form-control" id="target_fed_keys" name="target_fed_keys">
+  </div>
+  <button type="submit" class="btn btn-primary">Add Target</button>
+</form>
 
 {{ end }}

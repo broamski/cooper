@@ -1,14 +1,22 @@
 {{ define "content" }}
-
 {{ if .assoc }}
-<p>hello, {{.username}}.</p>
-<p>The selected <strong>Target</strong> will determine your level of access for the <strong>Duration</strong> of the session.</p>
+<!-- <p>hello, {{.username}}.</p> -->
+
+<p>The selected <strong>Target Name</strong> will determine your type of access for the <strong>Duration</strong> of the session.</p>
+<p class="help-block">Format Types:</p>
+<p>
+  <ul>
+    <li><strong>Console</strong> will launch the AWS console in a new window.</li>
+    <li><strong>Credentials File</strong> will download a credentials file to your computer. This file can then be placed in <code>~/.aws/credentials</code></li>
+  </ul>
+</p>
 <form class="form-inline" method="post" action="/become">
   <div class="form-group">
     <label for="target_select">Target Name</label>
     <select id="target_select" class="form-control" name="target_id">
+      <option value="77">Role 77 (doesn't exist)</option>
 {{ range $key, $val := .assoc }}
-      <option value="{{ $val.Assoc.AssociationID }}">Role {{ $val.TargetName }} | ({{ $val.AccountNumber }})</option))>
+      <option value="{{ $val.Assoc.AssociationID }}">Role {{ $val.TargetName }} | ({{ $val.AccountNumber }})</option>
 {{ end }}
     </select>
 
@@ -28,8 +36,11 @@
   </div>
   <input type="hidden" name="sisdfsdfs" value="le30493049">
   <input type="hidden" name="sdfsdfsdfsdfs22" value="ffff">
-  <button type="submit" class="btn btn-primary">Become</button>
+  <button type="submit" class="btn btn-primary">Go!</button>
 </form>
 
-{{ end}}
+{{ else }}
+<p>Sorry, you don't have any targets available.</p>
+{{ end }}
+
 {{ end }}
