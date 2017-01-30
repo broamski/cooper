@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/broamski/cooper/templating"
 
 	"github.com/gin-contrib/sessions"
@@ -35,6 +36,7 @@ func main() {
 	}
 
 	ddb := dynamodb.New(sess)
+	sts := sts.New(sess)
 
 	if *setup {
 		log.Println("running setup..")
@@ -76,7 +78,7 @@ func main() {
 	r.POST("/targets/associate", AuthenticatedAdmin(ddb), TargetsAssoc(ddb))
 	r.POST("/targets/disassociate", AuthenticatedAdmin(ddb), TargetsDisassoc(ddb))
 	r.GET("/targets/details/:targetid", AuthenticatedAdmin(ddb), TargetsDetails(ddb))
-	r.POST("/become", Authenticated(), Becomer(ddb))
+	r.POST("/become", Authenticated(), Becomer(ddb, sts))
 
 	// TOTO: remove - used for setting a debug session
 	r.GET("/setcookie", func(c *gin.Context) {

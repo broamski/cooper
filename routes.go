@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/sts"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/satori/go.uuid"
@@ -331,7 +332,7 @@ func (b Become) ValidateFormat() bool {
 	return false
 }
 
-func Becomer(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
+func Becomer(ddb *dynamodb.DynamoDB, s *sts.STS) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		session := sessions.Default(c)
 		who := session.Get("username")
@@ -362,6 +363,54 @@ func Becomer(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			return
 		}
 		if ia {
+			t, err := GetTarget(ddb, form.TargetID)
+			if err != nil {
+				c.String(500, "becomer->GetTarget error", err)
+				return
+			}
+
+			var creds *sts.Credentials
+			var e error
+			if t.Type == "role" {
+				fmt.Println("getting credentials by assming role")
+				creds, e = ProcessRoleAssumption(s, t, form)
+				if e != nil {
+					fmt.Println(err)
+					flasher(session, "danger", fmt.Sprint("%s", err))
+					c.Redirect(301, "/")
+					c.Abort()
+					return
+				}
+			} else if t.Type == "user" {
+				fmt.Println("getting credentials by GetFederationToken")
+				// creds, e = ProcessFederation()
+				// if e != nil {
+				//     fmt.Println(err)
+				//     flasher(session, "danger", fmt.Sprint("%s", err))
+				//     c.Redirect(301, "/")
+				//     c.Abort()
+				//     return
+				// }
+			} else {
+				flasher(session, "danger", "unknown type")
+				c.Redirect(301, "/")
+				c.Abort()
+				return
+			}
+
+			switch form.Format {
+			case "console":
+				consoleURL := Portalize(creds)
+				c.Redirect(302, consoleURL)
+				return
+			case "credentials":
+				qq := Fileize(creds)
+				c.Writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+				c.Writer.Header().Set("Content-Disposition", "attachment; filename=credentials")
+				c.Writer.WriteString(qq)
+				c.Writer.WriteHeader(200)
+				return
+			}
 			c.String(200, "yes, it worked!")
 			return
 		}
@@ -369,42 +418,6 @@ func Becomer(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		c.Redirect(301, "/")
 	}
 	return gin.HandlerFunc(fn)
-}
-
-func BecomerOld(svc *dynamodb.DynamoDB, b Become) error {
-	v, err := IsAssociated(svc, b.UserID, b.TargetID)
-	if err != nil {
-		return fmt.Errorf("error checking association", err)
-	}
-	if v {
-		t, err := GetTarget(svc, b.TargetID)
-		if err != nil {
-			return fmt.Errorf("becomer->GetTarget error", err)
-		}
-		switch t.Type {
-		case "role":
-			fmt.Println("getting credentials by assming role")
-		case "user":
-			fmt.Println("getting credentials by GetFederationToken")
-		}
-		switch b.Format {
-		case "console":
-			Portalize()
-		case "file":
-			Fileize()
-		}
-	} else {
-		return fmt.Errorf("cannot become this role as you arent associated to it")
-	}
-	return nil
-}
-
-func Portalize() {
-	fmt.Println("portalize!")
-}
-
-func Fileize() {
-	fmt.Println("fileize")
 }
 
 func TargetsAdd(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
