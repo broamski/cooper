@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/broamski/cooper/templating"
 
@@ -21,6 +22,9 @@ func main() {
 	log.SetOutput(os.Stdout)
 
 	setup := flag.Bool("setup", false, "Perform initial app setup")
+	encrypt := flag.Bool("encrypt", false, "encrypts a federated payload")
+	encryptbody := flag.String("encrypt-body", "", "payload to encrypt")
+	kmskey := flag.String("kmskey", "", "kms key ID used to encrypt payload")
 	flag.Parse()
 
 	awsregion := os.Getenv("AWS_REGION")
@@ -37,6 +41,21 @@ func main() {
 
 	ddb := dynamodb.New(sess)
 	sts := sts.New(sess)
+	kms := kms.New(sess)
+
+	// utility for encrypting federated user credentials
+	if *encrypt {
+		if *kmskey == "" {
+			log.Println("must provide -kmskey")
+			return
+		}
+		if *encryptbody == "" {
+			log.Println("must provide -encrypt-body")
+			return
+		}
+		EncryptKeys(kms, *kmskey, *encryptbody)
+		return
+	}
 
 	if *setup {
 		log.Println("running setup..")
@@ -78,7 +97,7 @@ func main() {
 	r.POST("/targets/associate", AuthenticatedAdmin(ddb), TargetsAssoc(ddb))
 	r.POST("/targets/disassociate", AuthenticatedAdmin(ddb), TargetsDisassoc(ddb))
 	r.GET("/targets/details/:targetid", AuthenticatedAdmin(ddb), TargetsDetails(ddb))
-	r.POST("/become", Authenticated(), Becomer(ddb, sts))
+	r.POST("/become", Authenticated(), Becomer(ddb, sts, kms))
 
 	// TOTO: remove - used for setting a debug session
 	r.GET("/setcookie", func(c *gin.Context) {

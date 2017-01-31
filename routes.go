@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/sts"
 
 	"github.com/gin-contrib/sessions"
@@ -332,7 +333,7 @@ func (b Become) ValidateFormat() bool {
 	return false
 }
 
-func Becomer(ddb *dynamodb.DynamoDB, s *sts.STS) gin.HandlerFunc {
+func Becomer(ddb *dynamodb.DynamoDB, s *sts.STS, k *kms.KMS) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		session := sessions.Default(c)
 		who := session.Get("username")
@@ -383,14 +384,15 @@ func Becomer(ddb *dynamodb.DynamoDB, s *sts.STS) gin.HandlerFunc {
 				}
 			} else if t.Type == "user" {
 				fmt.Println("getting credentials by GetFederationToken")
-				// creds, e = ProcessFederation()
-				// if e != nil {
-				//     fmt.Println(err)
-				//     flasher(session, "danger", fmt.Sprint("%s", err))
-				//     c.Redirect(301, "/")
-				//     c.Abort()
-				//     return
-				// }
+				// ProcessFederation(t, form)
+				creds, e = ProcessFederation(k, t, form)
+				if e != nil {
+					fmt.Println(err)
+					flasher(session, "danger", fmt.Sprint("%s", err))
+					c.Redirect(301, "/")
+					c.Abort()
+					return
+				}
 			} else {
 				flasher(session, "danger", "unknown type")
 				c.Redirect(301, "/")
@@ -507,6 +509,7 @@ func TargetsAssoc(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		session := sessions.Default(c)
 		var form TargetAction
 		err := c.Bind(&form)
+		fmt.Println(fmt.Sprintf("%+v", form))
 		if err != nil {
 			flasher(session, "danger", fmt.Sprintf("problem with incoming payload: %s", err))
 			if len(form.AssocID) == 0 {
@@ -521,10 +524,9 @@ func TargetsAssoc(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			c.Redirect(302, "/targets")
 			return
 		}
-		c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.AssocID))
-		return
 		err = AssociateTarget(ddb, form.Username, form.AssocID)
 		if err != nil {
+			fmt.Println("AssociateTarget err")
 			flasher(
 				session,
 				"danger",
@@ -537,6 +539,7 @@ func TargetsAssoc(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.AssocID))
 			return
 		}
+		fmt.Println("okay i am good")
 		flasher(session, "success", fmt.Sprintf("associated target %s to %s", form.AssocID, form.Username))
 		c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.AssocID))
 	}

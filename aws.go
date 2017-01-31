@@ -1,14 +1,19 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
@@ -26,7 +31,57 @@ func ProcessRoleAssumption(s *sts.STS, t Target, b Become) (*sts.Credentials, er
 	return resp.Credentials, nil
 }
 
-func ProcessFederation() {
+func ProcessFederation(km *kms.KMS, t Target, b Become) (*sts.Credentials, error) {
+	policy := `{
+	  "Version": "2012-10-17",
+	  "Statement": [
+	    {
+	      "Effect": "Allow",
+	      "Action": [
+	        "*"
+	      ],
+	      "Resource": "*"
+	    }
+	  ]
+	}`
+	// decrypt with KMS
+	decoded, err := base64.StdEncoding.DecodeString(t.FederatedCredentials)
+	if err != nil {
+		return &sts.Credentials{}, err
+	}
+	kmparams := &kms.DecryptInput{
+		CiphertextBlob: []byte(decoded),
+	}
+	kmresp, err := km.Decrypt(kmparams)
+	creds := strings.Split(string(kmresp.Plaintext), "|")
+	k, s := creds[0], creds[1]
+
+	c := credentials.NewStaticCredentials(k, s, "")
+	sess, err := session.NewSession(&aws.Config{
+		Credentials: c,
+		Region:      aws.String("us-east-1"),
+		MaxRetries:  aws.Int(5),
+	})
+	if err != nil {
+		return &sts.Credentials{}, err
+	}
+
+	st := sts.New(sess)
+	d, _ := strconv.ParseInt(b.Duration, 10, 64)
+	params := &sts.GetFederationTokenInput{
+		// Name:            aws.String(b.UserID),
+		Name:            aws.String(t.Name),
+		DurationSeconds: aws.Int64(d),
+		Policy:          aws.String(policy),
+	}
+	resp, err := st.GetFederationToken(params)
+	if err != nil {
+		// Print the error, cast err to awserr.Error to get the Code and
+		// Message from an error.
+		fmt.Println(err.Error())
+		return &sts.Credentials{}, fmt.Errorf("could not federate user", err)
+	}
+	return resp.Credentials, nil
 }
 
 type signinToken struct {

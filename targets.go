@@ -13,11 +13,17 @@ import (
 
 // Target defines what can be assumed in an AWS account
 type Target struct {
-	ID         string `dynamodbav:"target_id" form:"target_id" json:"target_id"`
-	Name       string `form:"target_name" json:"target_name" binding:"required"`
-	ARN        string `form:"target_arn" json:"target_arn" binding:"required"`
-	Type       string `form:"target_type" json:"target_type" binding:"required"`
-	ExternalID string `form:"target_external_id" json:"target_external_id"`
+	ID                   string `dynamodbav:"target_id" form:"target_id" json:"target_id"`
+	Name                 string `form:"target_name" json:"target_name" binding:"required"`
+	ARN                  string `form:"target_arn" json:"target_arn" binding:"required"`
+	Type                 string `form:"target_type" json:"target_type" binding:"required"`
+	ExternalID           string `form:"target_external_id" json:"target_external_id"`
+	FederatedCredentials string `form:"target_fed_creds" json:"target_fed_creds"`
+}
+
+type FederationCreds struct {
+	ID          string `dynamodbav:"target_id"`
+	Credentials string `json:"credentials"`
 }
 
 // TargetInvalid checks to see if a proper target type is being provided

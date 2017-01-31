@@ -46,9 +46,9 @@
     <input type="text" class="form-control" id="target_external_id" name="target_external_id" value="{{ .target.ExternalID}}">
   </div>
   <div class="form-group">
-    <label for="target_external_id">Federation Keys</label>
+    <label for="target_fed_creds">Federation Keys</label>
     <var>Only applicable for targets of type: Federation User</var>
-    <input type="text" class="form-control" id="fed_keys" name="fed_keys">
+    <input type="text" class="form-control" id="target_fed_creds" name="target_fed_creds" value="{{ .target.FederatedCredentials }}">
   </div>
   <div class="form-group">
     <button type="submit" formaction="/targets/update" method="post" class="btn btn-primary">Update Target</button></br></br>
