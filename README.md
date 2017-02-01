@@ -13,7 +13,15 @@ Option 2: Run cooper on compute resources outside of AWS, such as your datacente
 
 Create an AWS account exclusively for cooper operations. This can reduce the scope and increase the security posture of cooper.
 
---
+----
+
+### Concepts
+
+#### **Target** - A `Target` is any IAM Role or Federated User that you could potentially become.
+
+#### **Target Assoication** - A user is **associated** to a `Target`, meaning that user is allowed to pursue becoming that target.
+
+----
 
 #### Build Specifications
 
