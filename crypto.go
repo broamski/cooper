@@ -17,10 +17,9 @@ func EncryptKeys(k *kms.KMS, keyid string, payload string) {
 	}
 	resp, err := k.Encrypt(params)
 	if err != nil {
-		fmt.Println("there was an error:", err)
+		fmt.Println("there was an error encrypting the payload:", err)
 		return
 	}
 	ep := base64.StdEncoding.EncodeToString(resp.CiphertextBlob)
-	fmt.Print("here is your encrypted payload:\n")
-	fmt.Println(ep)
+	fmt.Print("here is your encrypted payload:\n", ep)
 }
