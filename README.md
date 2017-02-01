@@ -56,8 +56,10 @@ Assumption Targets
 
 ---
 
-`cooper -setup` - Creates the necessary DynamoDB tables when first installing the app. This does not start the webapp.
+#### Execution Examples
+
+`cooper -setup` - Creates the necessary DynamoDB tables when first installing the app. This does not start the application
 
 `cooper -encrypt -encrypt-payload "AKIAIOSFODNN7EXAMPLE|wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" --kmskey 0bd3695d-96a9-4642-8477-0a95e3b968fd -region us-east-1` - This will output a base64 encoded string you can use to supply the "Federation Keys" field when creating a new target
 
-`cooper -region us-east-1` - Starts the webapp
+`cooper -region us-east-1` - Starts the application
