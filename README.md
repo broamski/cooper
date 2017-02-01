@@ -39,9 +39,17 @@ Assumption Targets
 **High Security Areas** - If an Admin user is operating within a sensitive area, require the users setup a local TOTP that they must provide in order to perform the particular operation.
 
 
---
+----
 
 #### Todo:
 - [ ] Add scoped administrators
 - [ ] CSRF Protection
 - [ ] SAML Authentication (pick lib, implement)
+
+---
+
+`cooper -setup` - Creates the necessary DynamoDB tables when first installing the app. This does not start the webapp.
+
+`cooper -encrypt -encrypt-payload "AKIAIOSFODNN7EXAMPLE|wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" --kmskey 0bd3695d-96a9-4642-8477-0a95e3b968fd -region us-east-1` - This will output a base64 encoded string you can use to supply the "Federation Keys" field when creating a new target
+
+`cooper -region us-east-1` - Starts the webapp
