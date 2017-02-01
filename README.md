@@ -19,7 +19,7 @@ Create an AWS account exclusively for cooper operations. This can reduce the sco
 
 ##### Technologies
  - DynamoDB for persistent storage of cooper data
- - KMS -- A KMS Key is required for storing sensitive data in the DynamDB table (TOTP tokens) 
+ - KMS -- A KMS Key is required for referencing sensitive data
 
 #### Authentication - Extendable and flexible, to include any number of these:
  - Local authentication sceheme (local meaning handled on the backend)
@@ -39,6 +39,9 @@ Assumption Targets
 **High Security Areas** - If an Admin user is operating within a sensitive area, require the users setup a local TOTP that they must provide in order to perform the particular operation.
 
 
--- #### Todo:
-- [ ] DRY a bunch of code
-- [ ] find a way to define FunMaps with the current template engine, specfically for checking if we should display the Admin and Management links in the nav bar
+--
+
+#### Todo:
+- [ ] Add scoped administrators
+- [ ] CSRF Protection
+- [ ] SAML Authentication (pick lib, implement)
