@@ -31,6 +31,9 @@ func ProcessRoleAssumption(s *sts.STS, t Target, b Become) (*sts.Credentials, er
 }
 
 func ProcessFederation(km *kms.KMS, t Target, b Become) (*sts.Credentials, error) {
+    // this might seem dangerous, but the target that you are becoming
+    // should have the more restrictive policy, which will take precedence over
+    // this policy. this allows the portal to be flexible
 	policy := `{
 	  "Version": "2012-10-17",
 	  "Statement": [
