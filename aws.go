@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -44,16 +43,11 @@ func ProcessFederation(km *kms.KMS, t Target, b Become) (*sts.Credentials, error
 	    }
 	  ]
 	}`
-	// decrypt with KMS
-	decoded, err := base64.StdEncoding.DecodeString(t.FederatedCredentials)
+	pt, err := KMSDecrypt(km, t.FederatedCredentials)
 	if err != nil {
 		return &sts.Credentials{}, err
 	}
-	kmparams := &kms.DecryptInput{
-		CiphertextBlob: []byte(decoded),
-	}
-	kmresp, err := km.Decrypt(kmparams)
-	creds := strings.Split(string(kmresp.Plaintext), "|")
+	creds := strings.Split(pt, "|")
 	k, s := creds[0], creds[1]
 
 	c := credentials.NewStaticCredentials(k, s, "")

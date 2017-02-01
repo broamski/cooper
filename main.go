@@ -65,7 +65,7 @@ func main() {
 			log.Println("must provide -encrypt-payload")
 			return
 		}
-		EncryptKeys(kms, config.KMSKey, config.EncryptPayload)
+		KMSEncrypt(kms, config.KMSKey, config.EncryptPayload)
 		return
 	}
 
