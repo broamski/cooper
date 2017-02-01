@@ -18,25 +18,36 @@ import (
 	"gopkg.in/gin-gonic/gin.v1"
 )
 
+var config struct {
+	Setup          bool
+	Encrypt        bool
+	EncryptPayload string
+	KMSKey         string
+	Region         string
+}
+
+func init() {
+	flag.BoolVar(&config.Setup, "setup", false, "perform initial app setup")
+	flag.BoolVar(&config.Encrypt, "encrypt", false, "encrypts a payload (typically for storing federated credentials")
+	flag.StringVar(&config.EncryptPayload, "encrypt-payload", "", "payload to encrypt")
+	flag.StringVar(&config.KMSKey, "kmskey", "", "kms key ID used to encrypt payload")
+	flag.StringVar(&config.Region, "region", "us-east-1", "the AWS region where services reside that host cooper")
+}
+
 func main() {
 	log.SetOutput(os.Stdout)
-
-	setup := flag.Bool("setup", false, "Perform initial app setup")
-	encrypt := flag.Bool("encrypt", false, "encrypts a federated payload")
-	encryptbody := flag.String("encrypt-body", "", "payload to encrypt")
-	kmskey := flag.String("kmskey", "", "kms key ID used to encrypt payload")
 	flag.Parse()
 
-	awsregion := os.Getenv("AWS_REGION")
-	if awsregion == "" {
-		awsregion = "us-east-1"
+	if os.Getenv("AWS_REGION") != "" {
+		config.Region = os.Getenv("AWS_REGION")
 	}
+
 	sess, err := session.NewSession(&aws.Config{
-		Region:     aws.String(awsregion),
+		Region:     aws.String(config.Region),
 		MaxRetries: aws.Int(5),
 	})
 	if err != nil {
-		log.Fatalln("failed to setup the session", err)
+		log.Fatalln("failed to setup the aws session", err)
 	}
 
 	ddb := dynamodb.New(sess)
@@ -44,20 +55,21 @@ func main() {
 	kms := kms.New(sess)
 
 	// utility for encrypting federated user credentials
-	if *encrypt {
-		if *kmskey == "" {
+	// maybe this could also be provided via an html form?
+	if config.Encrypt {
+		if config.KMSKey == "" {
 			log.Println("must provide -kmskey")
 			return
 		}
-		if *encryptbody == "" {
-			log.Println("must provide -encrypt-body")
+		if config.EncryptPayload == "" {
+			log.Println("must provide -encrypt-payload")
 			return
 		}
-		EncryptKeys(kms, *kmskey, *encryptbody)
+		EncryptKeys(kms, config.KMSKey, config.EncryptPayload)
 		return
 	}
 
-	if *setup {
+	if config.Setup {
 		log.Println("running setup..")
 		log.Println("creating DynamoDB tables")
 		CreateTables(ddb)

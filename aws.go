@@ -59,7 +59,7 @@ func ProcessFederation(km *kms.KMS, t Target, b Become) (*sts.Credentials, error
 	c := credentials.NewStaticCredentials(k, s, "")
 	sess, err := session.NewSession(&aws.Config{
 		Credentials: c,
-		Region:      aws.String("us-east-1"),
+		Region:      aws.String(config.Region),
 		MaxRetries:  aws.Int(5),
 	})
 	if err != nil {
