@@ -42,20 +42,7 @@ var portalUserAssc = DDBTable{
 	&dynamodb.ProvisionedThroughput{ReadCapacityUnits: aws.Int64(1), WriteCapacityUnits: aws.Int64(1)},
 }
 
-var portalFedKeys = DDBTable{
-	"cooper_portal_federation_keys",
-	[]*dynamodb.KeySchemaElement{
-		{AttributeName: aws.String("account_number"), KeyType: aws.String("HASH")},
-		{AttributeName: aws.String("iam_user"), KeyType: aws.String("RANGE")},
-	},
-	[]*dynamodb.AttributeDefinition{
-		{AttributeName: aws.String("account_number"), AttributeType: aws.String("S")},
-		{AttributeName: aws.String("iam_user"), AttributeType: aws.String("S")},
-	},
-	&dynamodb.ProvisionedThroughput{ReadCapacityUnits: aws.Int64(1), WriteCapacityUnits: aws.Int64(1)},
-}
-
-var ddbTables = []DDBTable{portalAdmins, portalTargets, portalUserAssc, portalFedKeys}
+var ddbTables = []DDBTable{portalAdmins, portalTargets, portalUserAssc}
 
 // CreateTables creates all of the required tables to support the application
 func CreateTables(svc *dynamodb.DynamoDB) {
