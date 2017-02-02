@@ -109,6 +109,41 @@ func Admins(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 	return gin.HandlerFunc(fn)
 }
 
+func AdminsDetails(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
+	fn := func(c *gin.Context) {
+		session := sessions.Default(c)
+		flashes := session.Flashes()
+		uid := c.Param("userid")
+		a, err := GetAdmin(ddb, uid)
+		if err != nil {
+			flasher(session, "danger",
+				fmt.Sprintf("there was a problem retrieving the admin: %s", uid))
+			c.Redirect(302, "/admins")
+			return
+		}
+		if a == (AdminUser{}) {
+			flasher(session, "info", fmt.Sprintf("cloud not find admin: %s", uid))
+			c.Redirect(302, "/admins")
+			return
+		}
+		var funcMap = template.FuncMap{
+			"datadmin": func() bool {
+				areya := IsAdmin(ddb, session.Get("username").(string))
+				fmt.Println("areyaa:", areya)
+				return areya
+			},
+		}
+		session.Save()
+		c.HTML(200, "admins-details", gin.H{
+			"title":   fmt.Sprintf("admin details - %s", uid),
+			"flashes": flashes,
+			"admin":   a,
+			"cfunc":   funcMap,
+		})
+	}
+	return gin.HandlerFunc(fn)
+}
+
 func AdminsAdd(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		session := sessions.Default(c)
@@ -144,7 +179,7 @@ func AdminsRemove(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		}
 		err = RemoveAdmin(ddb, form)
 		if err != nil {
-			flasher(session, "danger", fmt.Sprintf("error adding admin %s: %s", form.Username, err))
+			flasher(session, "danger", fmt.Sprintf("error removing admin %s: %s", form.Username, err))
 			c.Redirect(302, "/admins")
 			return
 		}

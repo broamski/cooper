@@ -11,7 +11,8 @@ import (
 
 // AdminUser defines what an administrative user looks like
 type AdminUser struct {
-	Username string `form:"username" json:"username" binding:"required"`
+	Username    string `form:"username" json:"username" binding:"required"`
+	GlobalAdmin bool   `form:"global_admin" json:"global_admin"`
 }
 
 // GetAdmin returns an AdminUser when provided a user ID
@@ -97,6 +98,9 @@ func RemoveAdmin(svc *dynamodb.DynamoDB, adminuser AdminUser) error {
 	if err != nil {
 		return err
 	}
+	// remove GlobalAdmin from map, so it can match the key schema and be deleted
+	delete(item, "global_admin")
+
 	_, err = svc.DeleteItem(&dynamodb.DeleteItemInput{
 		ConditionExpression: aws.String("attribute_exists(username)"),
 		Key:                 item,

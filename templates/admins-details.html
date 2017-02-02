@@ -1,0 +1,14 @@
+{{ define "content" }}
+
+{{ if .admin }}
+<p>Admin Name: {{ .admin.Username }}</p>
+<p>Global Admin: {{ .admin.GlobalAdmin }}</p>
+<form class="admin-list-form" action="/admins/remove" method="post">
+   <div class="form-inline">
+     <button type="submit" class="btn btn-danger btn-xs" name="username" value="{{ .admin.Username }}">Remove Admin</button>
+   </div>
+</form>
+
+{{ end }}
+
+{{ end }}

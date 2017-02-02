@@ -5,6 +5,7 @@
      <div class="form-inline">
      <label class="admin-label" for="username">Email Address</label>
      <input type="text" class="form-control admin-input" id="username" name="username">
+	 <label><input type="checkbox" id="global_admin" name="global_admin" value=true checked="checked"> Global admin?</label><br>
      <button type="submit" class="btn btn-primary btn-md">Add Administrator</button>
      </div>
  </form>
@@ -12,15 +13,24 @@
  <hr/>
 
 {{ if .admins }}
-<p>There are {{ len .admins }} administratos</p>
-{{ range $key, $val := .admins }}
-  <form class="admin-list-form" action="/admins/remove" method="POST">
-    <div class="form-inline">
-      <label for="username">{{ $val.Username }}</label>
-      <button type="submit" class="btn btn-danger btn-xs" name="username" value="{{ $val.Username }}">Remove</button>
-    </div>
- </form>
+<p>There are {{ len .admins }} administrators</p>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Username</th>
+      <th>Global Admin</th>
+     </tr>
+  </thead>
+
+  <tbody>
+{{ range $key, $value := .admins }}
+     <tr>
+       <td><a href="/admins/details/{{ $value.Username }}">{{ $value.Username }}</a></td>
+       <td><a href="/admins/details/{{ $value.Username }}">{{ if $value.GlobalAdmin }}True{{ else }}False{{ end }}</a></td>
+    </tr>
 {{ end }}
+  </tbody>
+</table>
 
 {{ end }}
 
