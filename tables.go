@@ -35,8 +35,8 @@ var portalAdmins = DDBTable{
 	},
 }
 
-var portalAdminsAssociations = DDBTable{
-    "cooper_portal_admins_associations",
+var portalAdminsAssc = DDBTable{
+	"cooper_portal_admins_associations",
 	[]*dynamodb.KeySchemaElement{
 		{
 			AttributeName: aws.String("username"),
@@ -103,7 +103,7 @@ var portalUserAssc = DDBTable{
 	},
 }
 
-var ddbTables = []DDBTable{portalAdmins, portalTargets, portalUserAssc}
+var ddbTables = []DDBTable{portalAdmins, portalTargets, portalUserAssc, portalAdminsAssc}
 
 // CreateTables creates all of the required tables to support the application
 func CreateTables(svc *dynamodb.DynamoDB) {
