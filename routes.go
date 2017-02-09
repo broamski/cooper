@@ -93,7 +93,6 @@ func Admins(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		var funcMap = template.FuncMap{
 			"datadmin": func() bool {
 				areya := IsAdmin(ddb, u.(string))
-				fmt.Println("areyaa:", areya)
 				return areya
 			},
 		}
@@ -129,7 +128,6 @@ func AdminsDetails(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		var funcMap = template.FuncMap{
 			"datadmin": func() bool {
 				areya := IsAdmin(ddb, session.Get("username").(string))
-				fmt.Println("areyaa:", areya)
 				return areya
 			},
 		}
@@ -209,7 +207,6 @@ func Index(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		var funcMap = template.FuncMap{
 			"datadmin": func() bool {
 				areya := IsAdmin(ddb, u.(string))
-				fmt.Println("areyaa:", areya)
 				return areya
 			},
 		}
@@ -252,7 +249,6 @@ func Targets(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		var funcMap = template.FuncMap{
 			"datadmin": func() bool {
 				areya := IsAdmin(ddb, u.(string))
-				fmt.Println("areyaa:", areya)
 				return areya
 			},
 		}
@@ -290,7 +286,6 @@ func TargetsDetails(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		var funcMap = template.FuncMap{
 			"datadmin": func() bool {
 				areya := IsAdmin(ddb, session.Get("username").(string))
-				fmt.Println("areyaa:", areya)
 				return areya
 			},
 		}
@@ -335,7 +330,6 @@ func TargetsSearch(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		var funcMap = template.FuncMap{
 			"datadmin": func() bool {
 				areya := IsAdmin(ddb, u)
-				fmt.Println("areyaa:", areya)
 				return areya
 			},
 		}
