@@ -2,10 +2,11 @@
 
 {{ if .admin }}
 <p>Admin Name: {{ .admin.Username }}</p>
-<p>Global Admin: {{ .admin.GlobalAdmin }}</p>
+<p>Global Admin: <strong>{{ if .admin.GlobalAdmin }}True{{ else }}False{{ end }}</strong></p>
 <form class="admin-list-form" action="/admins/remove" method="post">
    <div class="form-inline">
-     <button type="submit" class="btn btn-danger btn-xs" name="username" value="{{ .admin.Username }}">Remove Admin</button>
+     <button type="submit" class="btn btn-danger" name="username" value="{{ .admin.Username }}">Remove Admin</button>
+     <a href="/admins" class="btn btn-info">Back</a>
    </div>
 </form>
 
