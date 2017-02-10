@@ -76,14 +76,15 @@ func main() {
 		return
 	}
 
+	baseTemplate := "templates/base.html"
 	templates := templating.New()
-	templates.AddFromFiles("index", "templates/base.html", "templates/index.html")
-	templates.AddFromFiles("admins", "templates/base.html", "templates/admins.html")
-	templates.AddFromFiles("admins-details", "templates/base.html", "templates/admins-details.html")
-	templates.AddFromFiles("targets", "templates/base.html", "templates/targets.html")
-	templates.AddFromFiles("targets-search", "templates/base.html", "templates/targets-search.html")
-	templates.AddFromFiles("targets-details", "templates/base.html", "templates/targets-details.html")
-	templates.AddFromFiles("login", "templates/base.html", "templates/login.html")
+	templates.AddFromFiles("index", baseTemplate, "templates/index.html")
+	templates.AddFromFiles("admins", baseTemplate, "templates/admins.html")
+	templates.AddFromFiles("admins-details", baseTemplate, "templates/admins-details.html")
+	templates.AddFromFiles("targets", baseTemplate, "templates/targets.html")
+	templates.AddFromFiles("targets-search", baseTemplate, "templates/targets-search.html")
+	templates.AddFromFiles("targets-details", baseTemplate, "templates/targets-details.html")
+	templates.AddFromFiles("login", baseTemplate, "templates/login.html")
 
 	gob.Register(Flash{})
 
