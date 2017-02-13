@@ -42,10 +42,18 @@ var portalAdminsAssc = DDBTable{
 			AttributeName: aws.String("username"),
 			KeyType:       aws.String("HASH"),
 		},
+		{
+			AttributeName: aws.String("account_number"),
+			KeyType:       aws.String("RANGE"),
+		},
 	},
 	[]*dynamodb.AttributeDefinition{
 		{
 			AttributeName: aws.String("username"),
+			AttributeType: aws.String("S"),
+		},
+		{
+			AttributeName: aws.String("account_number"),
 			AttributeType: aws.String("S"),
 		},
 	},

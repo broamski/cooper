@@ -15,6 +15,10 @@ type AdminUser struct {
 	GlobalAdmin bool   `form:"global_admin" json:"global_admin"`
 }
 
+func (a AdminUser) globalAdmin() bool {
+	return a.GlobalAdmin
+}
+
 // GetAdmin returns an AdminUser when provided a user ID
 func GetAdmin(svc *dynamodb.DynamoDB, uid string) (AdminUser, error) {
 	resp, err := svc.GetItem(&dynamodb.GetItemInput{
@@ -93,22 +97,122 @@ func AddAdmin(svc *dynamodb.DynamoDB, adminuser AdminUser) error {
 }
 
 // RemoveAdmin removes an administrator from the system
-func RemoveAdmin(svc *dynamodb.DynamoDB, adminuser AdminUser) error {
-	item, err := dynamodbattribute.MarshalMap(adminuser)
+func RemoveAdmin(ddb *dynamodb.DynamoDB, a string) error {
+	admin, err := GetAdmin(ddb, a)
 	if err != nil {
-		return err
+		return nil
 	}
-	// remove GlobalAdmin from map, so it can match the key schema and be deleted
-	delete(item, "global_admin")
 
-	_, err = svc.DeleteItem(&dynamodb.DeleteItemInput{
+	_, err = ddb.DeleteItem(&dynamodb.DeleteItemInput{
 		ConditionExpression: aws.String("attribute_exists(username)"),
-		Key:                 item,
-		TableName:           aws.String(portalAdmins.TableName),
+		Key: map[string]*dynamodb.AttributeValue{
+			"username": {
+				S: aws.String(a),
+			},
+		},
+		TableName: aws.String(portalAdmins.TableName),
 	})
 	if err != nil {
 		return err
 	}
-	log.Println("removed administrative user:", adminuser)
+	// remove any admin associations for non-global admins
+	// as a global admin should never have any associations
+	if !admin.GlobalAdmin {
+		asc, err := GetAdminAssociations(ddb, a)
+		if err != nil {
+			return nil
+		}
+		for _, v := range asc {
+			DisassociateAdmin(ddb, v.Username, v.AccountNumber)
+		}
+	}
+	log.Println("removed administrative user:", a)
+	return nil
+}
+
+func GetAdminAssociations(ddb *dynamodb.DynamoDB, username string) ([]AdminAssociation, error) {
+	items := []AdminAssociation{}
+	i := make([]map[string]*dynamodb.AttributeValue, 0)
+	resp, err := ddb.Query(&dynamodb.QueryInput{
+		TableName:              aws.String(portalAdminsAssc.TableName),
+		KeyConditionExpression: aws.String("username = :uid"),
+		ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+			":uid": {
+				S: aws.String(username),
+			},
+		},
+	})
+	if err != nil {
+		return items, err
+	}
+	i = append(i, resp.Items...)
+
+	// fetch additional items if the scan return limit is met
+	for len(resp.LastEvaluatedKey) > 0 {
+		fmt.Println("max number of results returned, processing next batch")
+		resp, err := ddb.Query(&dynamodb.QueryInput{
+			TableName:              aws.String(portalAdminsAssc.TableName),
+			KeyConditionExpression: aws.String("username = :uid"),
+			ExpressionAttributeValues: map[string]*dynamodb.AttributeValue{
+				":uid": {
+					S: aws.String(username),
+				},
+			},
+		})
+		if err != nil {
+			return items, err
+		}
+		i = append(i, resp.Items...)
+	}
+
+	// Unmarshal the Items field in the result value to the Item Go type.
+	err = dynamodbattribute.UnmarshalListOfMaps(i, &items)
+	if err != nil {
+		return items, err
+	}
+	return items, nil
+}
+
+type AdminAssociation struct {
+	Username      string `dynamodbav:"username"`
+	AccountNumber string `dynamodbav:"account_number"`
+}
+
+func AssociateAdmin(ddb *dynamodb.DynamoDB, adminuser AdminUser, accountNum string) error {
+	a := AdminAssociation{adminuser.Username, accountNum}
+	fmt.Println(a)
+	item, err := dynamodbattribute.MarshalMap(a)
+	if err != nil {
+		return err
+	}
+
+	_, err = ddb.PutItem(&dynamodb.PutItemInput{
+		ConditionExpression: aws.String("attribute_not_exists(username)"),
+		Item:                item,
+		TableName:           aws.String(portalAdminsAssc.TableName),
+	})
+	if err != nil {
+		return err
+	}
+	log.Println("associated administrative user:", adminuser, "to", accountNum)
+	return nil
+}
+
+func DisassociateAdmin(ddb *dynamodb.DynamoDB, admin string, accountNum string) error {
+	_, err := ddb.DeleteItem(&dynamodb.DeleteItemInput{
+		ConditionExpression: aws.String("attribute_exists(username)"),
+		Key: map[string]*dynamodb.AttributeValue{
+			"username": {
+				S: aws.String(admin),
+			},
+			"account_number": {
+				S: aws.String(accountNum),
+			},
+		},
+		TableName: aws.String(portalAdminsAssc.TableName),
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }

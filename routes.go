@@ -131,11 +131,21 @@ func AdminsDetails(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 				return areya
 			},
 		}
+		assoc := []AdminAssociation{}
+		if !a.GlobalAdmin {
+			assoc, err = GetAdminAssociations(ddb, uid)
+			if err != nil {
+				flasher(session, "danger", fmt.Sprintf("there was an error: %s", err))
+				c.Redirect(302, "/admins")
+				return
+			}
+		}
 		session.Save()
 		c.HTML(200, "admins-details", gin.H{
 			"title":   fmt.Sprintf("admin details - %s", uid),
 			"flashes": flashes,
 			"admin":   a,
+			"assoc":   assoc,
 			"cfunc":   funcMap,
 		})
 	}
@@ -152,11 +162,28 @@ func AdminsAdd(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			c.Redirect(302, "some bad shit happened")
 			return
 		}
+		fmt.Println(fmt.Sprintf("%+v", form))
 		err = AddAdmin(ddb, form)
 		if err != nil {
 			flasher(session, "danger", fmt.Sprintf("error adding admin %s: %s", form.Username, err))
 			c.Redirect(302, "/admins")
 			return
+		}
+
+		// if not adding a global admin, associate the admin to the specified account number
+		if !form.GlobalAdmin {
+			actnum := c.PostForm("account_number")
+			if actnum != "" {
+				err = AssociateAdmin(ddb, form, actnum)
+				if err != nil {
+					flasher(session, "danger", fmt.Sprintf("could not add user %s to %s: %s", form.Username, actnum, err))
+					c.Redirect(302, "/admins")
+					return
+				}
+				flasher(session, "success", fmt.Sprintf("added %s to %s", form.Username, actnum))
+				c.Redirect(302, "/admins")
+				return
+			}
 		}
 		flasher(session, "success", fmt.Sprintf("added admin: %s", form.Username))
 		c.Redirect(302, "/admins")
@@ -168,6 +195,7 @@ func AdminsAdd(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 func AdminsRemove(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		session := sessions.Default(c)
+		u := c.PostForm("username")
 		var form AdminUser
 		err := c.Bind(&form)
 		if err != nil {
@@ -175,7 +203,7 @@ func AdminsRemove(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			c.Redirect(302, "some bad shit happened")
 			return
 		}
-		err = RemoveAdmin(ddb, form)
+		err = RemoveAdmin(ddb, u)
 		if err != nil {
 			flasher(session, "danger", fmt.Sprintf("error removing admin %s: %s", form.Username, err))
 			c.Redirect(302, "/admins")

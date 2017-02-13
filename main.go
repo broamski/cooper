@@ -102,6 +102,8 @@ func main() {
 	r.GET("/admins/details/:userid", AuthenticatedAdmin(ddb), AdminsDetails(ddb))
 	r.POST("/admins/add", AuthenticatedAdmin(ddb), AdminsAdd(ddb))
 	r.POST("/admins/remove", AuthenticatedAdmin(ddb), AdminsRemove(ddb))
+	// r.POST("/admins/associate", AuthenticatedAdmin(ddb), AdminsAssoc(ddb))
+	// r.POST("/admins/disassociate", AuthenticatedAdmin(ddb), AdminsDisassoc(ddb))
 	r.GET("/login", Login)
 	r.GET("/logout", Authenticated(), Logout)
 	r.GET("/targets", AuthenticatedAdmin(ddb), Targets(ddb))
@@ -129,6 +131,15 @@ func main() {
 		session.Set("username", username)
 		session.Save()
 		c.JSON(200, gin.H{"username": username})
+	})
+	r.GET("/test", func(c *gin.Context) {
+		u := "poop@fart.com"
+		a, _ := GetAdminAssociations(ddb, u)
+		for _, v := range a {
+			fmt.Println(v)
+		}
+		// fmt.Println(fmt.Sprintf("%+v", a))
+		c.String(200, "ok")
 	})
 	r.Run()
 }
