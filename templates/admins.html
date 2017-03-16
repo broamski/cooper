@@ -1,6 +1,5 @@
 {{ define "content" }}
 
-  <h3>Add Administrator</h3> 
  <!-- <form action="/admins/add" method="post">
      <div class="form-inline">
      <label class="admin-label" for="username">Email Address</label>
@@ -10,26 +9,51 @@
      </div>
  </form> -->
 
- <form action="/admins/add" method="post">
-   <div class="form-group">
-     <label for="username">Username</label>
-     <input type="text" class="form-control admin-input" id="username" name="username">
-   </div>
-   <div class="form-group">
-     <label for="accountnumber">Account Number</label>
-     <input type="text" class="form-control input-threefifty" id="account_number" name="account_number">
-     <p class="help-block">Provide account number if the user is not a global administrator</p>
-   </div>
-   <div class="checkbox">
-     <label>
-       <input type="checkbox" id="global_admin" name="global_admin" value=true> Global Administrator
-     </label>
-   </div>
-   <button type="submit" class="btn btn-primary btn-md">Add Administrator</button>
- </form>
+<div class="row">
+    {{ if globaladmin }}
+    <div class="col-lg-6">
+      <h3>Add Administrator</h3> 
+      <form class="tester" action="/admins/add" method="post">
+        <div class="form-group tester">
+          <label for="username">Username</label>
+          <input type="text" class="form-control admin-input" id="username" name="username">
+        </div>
+        <div class="checkbox">
+          <label>
+            <input type="checkbox" id="global_admin" name="global_admin" value=true> Global Administrator
+          </label>
+        </div>
+        <div class="form-group">
+          <label for="accountnumber">Account Number</label>
+          <input type="text" class="form-control input-threefifty" id="account_number" name="account_number">
+          <span class="help-block">Provide account number if the user is not a global administrator</span>
+        </div>
+        <button type="submit" class="btn btn-primary btn-md">Add Administrator</button>
+      </form>
+    </div>
+    {{ else }}
+    <p>1. check when listing indiviual admin </p>
+    <p>2. check when adding admin </p>
+    <p>3. check when associating admin </p>
+    <p>4. check when dis-associating admin </p>
+    <div class="col-lg-6">
+      <h3>Add Administrator</h3> 
+      <form action="/admins/add" method="post">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" class="form-control admin-input" id="username" name="username">
+        </div>
+        <div class="form-group">
+          <label for="accountnumber">Account Number</label>
+          <input type="text" class="form-control input-threefifty" id="account_number" name="account_number">
+        </div>
+        <button type="submit" class="btn btn-primary btn-md">Add Administrator</button>
+      </form>
+    </div>
+    {{ end }}
+</div>
 
  <hr/>
-
 {{ if .admins }}
 <p>There are {{ len .admins }} administrators</p>
 <table class="table table-striped">

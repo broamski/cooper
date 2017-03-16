@@ -16,7 +16,7 @@ type DDBTable struct {
 }
 
 var portalAdmins = DDBTable{
-	"cooper_portal_admin",
+	"cooper_portal_admins",
 	[]*dynamodb.KeySchemaElement{
 		{
 			AttributeName: aws.String("username"),

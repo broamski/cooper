@@ -26,6 +26,8 @@ var config struct {
 	Region         string
 }
 
+var ddb *dynamodb.DynamoDB
+
 func init() {
 	flag.BoolVar(&config.Setup, "setup", false, "perform initial app setup")
 	flag.BoolVar(&config.Encrypt, "encrypt", false, "encrypts a payload (typically for storing federated credentials")
@@ -50,7 +52,7 @@ func main() {
 		log.Fatalln("failed to setup the aws session", err)
 	}
 
-	ddb := dynamodb.New(sess)
+	ddb = dynamodb.New(sess)
 	sts := sts.New(sess)
 	kms := kms.New(sess)
 
@@ -133,11 +135,26 @@ func main() {
 		c.JSON(200, gin.H{"username": username})
 	})
 	r.GET("/test", func(c *gin.Context) {
-		u := "poop@fart.com"
-		a, _ := GetAdminAssociations(ddb, u)
-		for _, v := range a {
-			fmt.Println(v)
+		resp, _ := ddb.GetItem(&dynamodb.GetItemInput{
+			TableName: aws.String(portalAdmins.TableName),
+			Key: map[string]*dynamodb.AttributeValue{
+				"username": {
+					S: aws.String("brian@test.com"),
+				},
+			},
+		})
+		fmt.Println(fmt.Sprintf("%T", resp))
+		if len(resp.Item) == 0 {
+			fmt.Println("no results returned")
+		} else {
+			fmt.Println(len(resp.Item), "results returned")
 		}
+		fmt.Println(resp.Item)
+		// u := "brian@example.com"
+		// a, _ := GetAdminAssociations(ddb, u)
+		// for _, v := range a.AccountNumbers {
+		// 	fmt.Println(v)
+		// }
 		// fmt.Println(fmt.Sprintf("%+v", a))
 		c.String(200, "ok")
 	})

@@ -65,9 +65,11 @@ func ProcessFederation(km *kms.KMS, t Target, b Become) (*sts.Credentials, error
 
 	st := sts.New(sess)
 	d, _ := strconv.ParseInt(b.Duration, 10, 64)
+	fmt.Println("here is your name", t.Name)
+	fmt.Println(fmt.Sprintf("%T", t.Name))
 	params := &sts.GetFederationTokenInput{
-		// Name:            aws.String(b.UserID),
-		Name:            aws.String(t.Name),
+		Name: aws.String(b.UserID),
+		// Name:            aws.String(t.Name),
 		DurationSeconds: aws.Int64(d),
 		Policy:          aws.String(policy),
 	}

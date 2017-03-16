@@ -7,12 +7,12 @@
 <p>You are admin on the following accounts:</p>
 <form method="post" action="/admins/disassociate">
   <input type="hidden" name="username" value="{{ .admin.Username }}">
-{{ range $key, $value := .assoc}}
+{{ range $key, $value := .assoc.AccountNumbers}}
 
 <div class="radio">
   <label>
-    <input type="radio" name="assoc_id" id="assoc_id" value="{{ $value.AccountNumber }}" >
-    {{ $value.AccountNumber }}
+    <input type="radio" name="assoc_id" id="assoc_id" value="{{ $value }}" >
+    {{ $value }}
   </label>
 </div>
 

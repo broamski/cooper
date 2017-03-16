@@ -10,7 +10,10 @@ import (
 )
 
 var funcMap = template.FuncMap{
-	"datadmin": func() bool {
+	"admin": func() bool {
+		return false
+	},
+	"globaladmin": func() bool {
 		return false
 	},
 }
