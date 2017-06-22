@@ -10,8 +10,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/sts"
 
 	"github.com/gin-contrib/sessions"
+	"github.com/gin-gonic/gin"
 	"github.com/satori/go.uuid"
-	"gopkg.in/gin-gonic/gin.v1"
 )
 
 type Flash struct {
@@ -49,14 +49,14 @@ func AuthenticatedAdmin(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		status, _, err := GetAdmin(ddb, u.(string))
+		admin, _, err := GetAdmin(ddb, u.(string))
 		if err != nil {
 			flasher(session, "danger", "there was a problem checking your authorization")
 			c.Redirect(307, "/")
 			c.Abort()
 			return
 		}
-		if !status {
+		if !admin {
 			flasher(
 				session, "danger",
 				fmt.Sprintf("you are not authorized to view %s", c.Request.URL.Path),
@@ -70,88 +70,39 @@ func AuthenticatedAdmin(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 }
 
 func IsAdmin(ddb *dynamodb.DynamoDB, uid string) bool {
-	status, _, err := GetAdmin(ddb, uid)
+	admin, _, err := GetAdmin(ddb, uid)
 	if err != nil {
 		return false
 	}
-	if status {
+	if admin {
 		return true
 	}
 	return false
 }
 
-func IsGlobalAdmin(ddb *dynamodb.DynamoDB, uid string) bool {
-	status, a, err := GetAdmin(ddb, uid)
-	if err != nil {
-		return false
-	}
-	if status {
-		if a.GlobalAdmin {
-			return true
-		}
-	}
-	return false
-}
-
-// Admins allows the user to view admins
+// Admins allows the user to view all admins
 func Admins(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		session := sessions.Default(c)
 		flashes := session.Flashes()
 		u := session.Get("username").(string)
-		_, cadmin, err := GetAdmin(ddb, u)
+
+		admins := []Admin{}
+		admins, err := GetAdmins(ddb)
 		if err != nil {
 			flasher(session, "danger", fmt.Sprintf("An error occured retrieving admins list: %s", err))
 		}
 
-		admins := []Admin{}
-		if cadmin.GlobalAdmin {
-			fmt.Println("yes you are a global admin")
-			admins, err = GetAdmins(ddb)
-			if err != nil {
-				flasher(session, "danger", fmt.Sprintf("An error occured retrieving admins list: %s", err))
-			}
-			// if global admin, get all admins
-		} else {
-			fmt.Println("no you are not a global admin")
-			allAdmins, _ := GetAllAdminAssociations(ddb)
-			fmt.Println(allAdmins)
-			scopedAdmins, _ := GetAdminAssociations(ddb, u)
-			for _, sadmin := range scopedAdmins.AccountNumbers {
-				fmt.Println(sadmin)
-				for _, value := range allAdmins {
-					if value.AccountNumber == sadmin {
-						_, a, _ := GetAdmin(ddb, value.Username)
-						admins = append(admins, a)
-					}
-				}
-			}
-			fmt.Println("here are you admins:", admins)
-			// get admin associations with current user
-			// get full admin list
-			// for each item in admin list:
-			//     if item in adminassoc list, keep it,
-			//	   otherwise, pop it from the list
-		}
-		fmt.Println(fmt.Sprintf("%T", admins))
-		// admins, err := GetAdmins(ddb)
-		// if err != nil {
-		// 	flasher(session, "danger", fmt.Sprintf("An error occured retrieving admins list: %s", err))
-		// }
 		var funcMap = template.FuncMap{
 			"admin": func() bool {
 				a := IsAdmin(ddb, u)
-				return a
-			},
-			"globaladmin": func() bool {
-				a := IsGlobalAdmin(ddb, u)
 				return a
 			},
 		}
 		session.Save()
 		c.HTML(200, "admins", gin.H{
 			"title":   "admins",
-			"header":  "portal admins",
+			"header":  "Portal Admins",
 			"admins":  admins,
 			"flashes": flashes,
 			"cfunc":   funcMap,
@@ -166,61 +117,30 @@ func AdminsDetails(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		flashes := session.Flashes()
 		u := session.Get("username").(string)
 		uid := c.Param("userid")
-		status, cadmin, err := GetAdmin(ddb, u)
-		if err != nil {
-			flasher(session, "danger",
-				fmt.Sprintf("there was a problem retrieving the admin: %s", uid))
-			c.Redirect(302, "/admins")
-			return
-		}
-		if !status {
-			flasher(session, "info", fmt.Sprintf("cloud not find admin: %s", uid))
-			c.Redirect(302, "/admins")
-			return
-		}
+
 		var funcMap = template.FuncMap{
 			"admin": func() bool {
 				a := IsAdmin(ddb, u)
 				return a
 			},
-			"globaladmin": func() bool {
-				a := IsGlobalAdmin(ddb, u)
-				return a
-			},
 		}
-		// get the admin you are looking up
-		_, a, err := GetAdmin(ddb, uid)
-		assoc := AdminAssociations{}
-		if cadmin.GlobalAdmin {
-			assoc, err = GetAdminAssociations(ddb, uid)
-			if err != nil {
-				flasher(session, "danger", fmt.Sprintf("there was an error: %s", err))
-				c.Redirect(302, "/admins")
-				return
-			}
-		} else {
-			canview := false
-			ta, _ := GetAdminAssociations(ddb, u)
-			ra, _ := GetAdminAssociations(ddb, uid)
-			for _, a := range ta.AccountNumbers {
-				for _, b := range ra.AccountNumbers {
-					if b == a {
-						canview = true
-					}
-				}
-			}
-			if !canview {
-				flasher(session, "danger", fmt.Sprintf("sorry, you cannot view this user"))
-				c.Redirect(302, "/admins")
-				return
-			}
+		status, a, err := GetAdmin(ddb, uid)
+		fmt.Println(a)
+		if err != nil {
+			flasher(session, "danger", fmt.Sprintf("there was an error: %s", err))
+			c.Redirect(302, "/admins")
+			return
+		}
+		if !status {
+			flasher(session, "danger", fmt.Sprintf("Could not find admin: %s", uid))
+			c.Redirect(302, "/admins")
+			return
 		}
 		session.Save()
 		c.HTML(200, "admins-details", gin.H{
 			"title":   fmt.Sprintf("admin details - %s", uid),
 			"flashes": flashes,
 			"admin":   a,
-			"assoc":   assoc,
 			"cfunc":   funcMap,
 		})
 	}
@@ -245,21 +165,6 @@ func AdminsAdd(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			return
 		}
 
-		// if not adding a global admin, associate the admin to the specified account number
-		if !form.GlobalAdmin {
-			actnum := c.PostForm("account_number")
-			if actnum != "" {
-				err = AssociateAdmin(ddb, form, actnum)
-				if err != nil {
-					flasher(session, "danger", fmt.Sprintf("could not add user %s to %s: %s", form.Username, actnum, err))
-					c.Redirect(302, "/admins")
-					return
-				}
-				flasher(session, "success", fmt.Sprintf("added %s to %s", form.Username, actnum))
-				c.Redirect(302, "/admins")
-				return
-			}
-		}
 		flasher(session, "success", fmt.Sprintf("added admin: %s", form.Username))
 		c.Redirect(302, "/admins")
 		return
@@ -312,14 +217,10 @@ func Index(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 				a := IsAdmin(ddb, u.(string))
 				return a
 			},
-			"globaladmin": func() bool {
-				a := IsGlobalAdmin(ddb, u.(string))
-				return a
-			},
 		}
 		c.HTML(200, "index", gin.H{
-			"title":    "aws portal",
-			"header":   fmt.Sprintf("hello, %s", u),
+			"title": "aws portal",
+			// "header":   fmt.Sprintf("hello, <strong>%s<strong>", u),
 			"username": u,
 			"flashes":  flashes,
 			"assoc":    as,
@@ -358,15 +259,11 @@ func Targets(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 				a := IsAdmin(ddb, u)
 				return a
 			},
-			"globaladmin": func() bool {
-				a := IsGlobalAdmin(ddb, u)
-				return a
-			},
 		}
 		session.Save()
 		c.HTML(200, "targets", gin.H{
 			"title":    "targets",
-			"header":   "target management",
+			"header":   "Target Management",
 			"username": u,
 			"flashes":  flashes,
 			"targets":  targets,
@@ -398,10 +295,6 @@ func TargetsDetails(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		var funcMap = template.FuncMap{
 			"admin": func() bool {
 				a := IsAdmin(ddb, u)
-				return a
-			},
-			"globaladmin": func() bool {
-				a := IsGlobalAdmin(ddb, u)
 				return a
 			},
 		}
@@ -446,10 +339,6 @@ func TargetsSearch(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		var funcMap = template.FuncMap{
 			"admin": func() bool {
 				a := IsAdmin(ddb, session.Get("username").(string))
-				return a
-			},
-			"globaladmin": func() bool {
-				a := IsGlobalAdmin(ddb, session.Get("username").(string))
 				return a
 			},
 		}
@@ -520,11 +409,11 @@ func Becomer(ddb *dynamodb.DynamoDB, s *sts.STS, k *kms.KMS) gin.HandlerFunc {
 			}
 
 			var creds *sts.Credentials
-			var e error
+			// var err error
 			if t.Type == "role" {
 				fmt.Println("getting credentials by assming role")
-				creds, e = ProcessRoleAssumption(s, t, form)
-				if e != nil {
+				creds, err = ProcessRoleAssumption(s, t, form)
+				if err != nil {
 					fmt.Println(err)
 					flasher(session, "danger", fmt.Sprint("%s", err))
 					c.Redirect(301, "/")
@@ -533,9 +422,8 @@ func Becomer(ddb *dynamodb.DynamoDB, s *sts.STS, k *kms.KMS) gin.HandlerFunc {
 				}
 			} else if t.Type == "user" {
 				fmt.Println("getting credentials by GetFederationToken")
-				// ProcessFederation(t, form)
-				creds, e = ProcessFederation(k, t, form)
-				if e != nil {
+				creds, err = ProcessFederation(k, t, form)
+				if err != nil {
 					fmt.Println(err)
 					flasher(session, "danger", fmt.Sprintf("there was a problem: %s", err))
 					c.Redirect(301, "/")

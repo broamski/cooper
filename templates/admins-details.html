@@ -1,27 +1,7 @@
 {{ define "content" }}
 
 {{ if .admin }}
-<p>Admin Name: {{ .admin.Username }}{{ if .admin.GlobalAdmin }} <strong>(Global Admin)</strong>{{ end }}</p>
-
-{{ if not .admin.GlobalAdmin }}
-<p>You are admin on the following accounts:</p>
-<form method="post" action="/admins/disassociate">
-  <input type="hidden" name="username" value="{{ .admin.Username }}">
-{{ range $key, $value := .assoc.AccountNumbers}}
-
-<div class="radio">
-  <label>
-    <input type="radio" name="assoc_id" id="assoc_id" value="{{ $value }}" >
-    {{ $value }}
-  </label>
-</div>
-
-{{ end }}
-<button type="submit" class="btn btn-danger">Remove Selected Assocation</button>
-</form>
-
-<br/>
-{{ end }}
+<p>Admin: {{ .admin.Username }}</p>
 
 <form class="admin-list-form" action="/admins/remove" method="post">
    <div class="form-inline">
@@ -29,7 +9,6 @@
      <a href="/admins" class="btn btn-info">Back</a>
    </div>
 </form>
-
 {{ end }}
 
 {{ end }}

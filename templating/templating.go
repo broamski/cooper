@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
-	"gopkg.in/gin-gonic/gin.v1"
 )
 
 var funcMap = template.FuncMap{

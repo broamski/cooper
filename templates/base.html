@@ -53,7 +53,10 @@
 
       <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
+          {{if .header }}
           <h1>{{ .header }}</h1>
+          <hr/>
+          {{ end }}
         <p>{{template "content" .}}</p>
       </div>
 
