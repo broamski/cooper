@@ -219,8 +219,7 @@ func Index(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			},
 		}
 		c.HTML(200, "index", gin.H{
-			"title": "aws portal",
-			// "header":   fmt.Sprintf("hello, <strong>%s<strong>", u),
+			"title":    "aws portal",
 			"username": u,
 			"flashes":  flashes,
 			"assoc":    as,
