@@ -40,7 +40,7 @@ func (t Target) TargetInvalid() bool {
 func (t Target) getAccountNumber() string {
 	// example ARNs
 	// arn:aws:iam::123456789012:role/S3Access
-	// arn:aws:sts::123456789012:federated-user/Bobo
+	// arn:aws:sts::123456789012:user/Bobo
 	splitARN := strings.Split(t.ARN, ":")
 	if len(splitARN) != 6 {
 		return ""

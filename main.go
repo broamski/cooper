@@ -15,11 +15,12 @@ import (
 	"github.com/broamski/cooper/templating"
 
 	"github.com/gin-contrib/sessions"
-	"gopkg.in/gin-gonic/gin.v1"
+	"github.com/gin-gonic/gin"
 )
 
 var config struct {
 	Setup          bool
+	InitialAdmin   string
 	Encrypt        bool
 	EncryptPayload string
 	KMSKey         string
@@ -31,6 +32,7 @@ var ddb *dynamodb.DynamoDB
 func init() {
 	flag.BoolVar(&config.Setup, "setup", false, "perform initial app setup")
 	flag.BoolVar(&config.Encrypt, "encrypt", false, "encrypts a payload (typically for storing federated credentials")
+	flag.StringVar(&config.InitialAdmin, "initial-admin", "", "Username of and admin you'd like to set on setup")
 	flag.StringVar(&config.EncryptPayload, "encrypt-payload", "", "payload to encrypt")
 	flag.StringVar(&config.KMSKey, "kmskey", "", "kms key ID used to encrypt payload")
 	flag.StringVar(&config.Region, "region", "us-east-1", "the AWS region where services reside that host cooper")
@@ -75,6 +77,13 @@ func main() {
 		log.Println("running setup..")
 		log.Println("creating DynamoDB tables")
 		CreateTables(ddb)
+		if config.InitialAdmin != "" {
+			newAdmin := Admin{config.InitialAdmin}
+			err = AddAdmin(ddb, newAdmin)
+			if err != nil {
+				log.Fatal(fmt.Sprintf("Could not add admin %s - error %s", config.InitialAdmin, err))
+			}
+		}
 		return
 	}
 
@@ -104,8 +113,6 @@ func main() {
 	r.GET("/admins/details/:userid", AuthenticatedAdmin(ddb), AdminsDetails(ddb))
 	r.POST("/admins/add", AuthenticatedAdmin(ddb), AdminsAdd(ddb))
 	r.POST("/admins/remove", AuthenticatedAdmin(ddb), AdminsRemove(ddb))
-	// r.POST("/admins/associate", AuthenticatedAdmin(ddb), AdminsAssoc(ddb))
-	// r.POST("/admins/disassociate", AuthenticatedAdmin(ddb), AdminsDisassoc(ddb))
 	r.GET("/login", Login)
 	r.GET("/logout", Authenticated(), Logout)
 	r.GET("/targets", AuthenticatedAdmin(ddb), Targets(ddb))
@@ -150,12 +157,6 @@ func main() {
 			fmt.Println(len(resp.Item), "results returned")
 		}
 		fmt.Println(resp.Item)
-		// u := "brian@example.com"
-		// a, _ := GetAdminAssociations(ddb, u)
-		// for _, v := range a.AccountNumbers {
-		// 	fmt.Println(v)
-		// }
-		// fmt.Println(fmt.Sprintf("%+v", a))
 		c.String(200, "ok")
 	})
 	r.Run()

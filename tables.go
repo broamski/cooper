@@ -35,34 +35,6 @@ var portalAdmins = DDBTable{
 	},
 }
 
-var portalAdminsAssc = DDBTable{
-	"cooper_portal_admins_associations",
-	[]*dynamodb.KeySchemaElement{
-		{
-			AttributeName: aws.String("username"),
-			KeyType:       aws.String("HASH"),
-		},
-		{
-			AttributeName: aws.String("account_number"),
-			KeyType:       aws.String("RANGE"),
-		},
-	},
-	[]*dynamodb.AttributeDefinition{
-		{
-			AttributeName: aws.String("username"),
-			AttributeType: aws.String("S"),
-		},
-		{
-			AttributeName: aws.String("account_number"),
-			AttributeType: aws.String("S"),
-		},
-	},
-	&dynamodb.ProvisionedThroughput{
-		ReadCapacityUnits:  aws.Int64(1),
-		WriteCapacityUnits: aws.Int64(1),
-	},
-}
-
 var portalTargets = DDBTable{
 	"cooper_portal_targets",
 	[]*dynamodb.KeySchemaElement{
@@ -111,7 +83,7 @@ var portalUserAssc = DDBTable{
 	},
 }
 
-var ddbTables = []DDBTable{portalAdmins, portalTargets, portalUserAssc, portalAdminsAssc}
+var ddbTables = []DDBTable{portalAdmins, portalTargets, portalUserAssc}
 
 // CreateTables creates all of the required tables to support the application
 func CreateTables(svc *dynamodb.DynamoDB) {
@@ -130,7 +102,7 @@ func CreateTables(svc *dynamodb.DynamoDB) {
 		}
 
 		// Use a waiter function to wait until the table has been created before proceeding
-		log.Println("waiting for table", portalAdmins.TableName, "to be created")
+		log.Println("waiting for table", v.TableName, "to be created")
 		describeTableInput := &dynamodb.DescribeTableInput{
 			TableName: aws.String(v.TableName),
 		}

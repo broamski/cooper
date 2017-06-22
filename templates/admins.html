@@ -1,51 +1,13 @@
 {{ define "content" }}
 
- <!-- <form action="/admins/add" method="post">
-     <div class="form-inline">
-     <label class="admin-label" for="username">Email Address</label>
-     <input type="text" class="form-control admin-input" id="username" name="username">
-	 <label><input type="checkbox" id="global_admin" name="global_admin" value=true> Global admin</label><br>
-     <button type="submit" class="btn btn-primary btn-md">Add Administrator</button>
-     </div>
- </form> -->
-
 <div class="row">
-    {{ if globaladmin }}
+    {{ if admin }}
     <div class="col-lg-6">
       <h3>Add Administrator</h3> 
       <form class="tester" action="/admins/add" method="post">
         <div class="form-group tester">
           <label for="username">Username</label>
           <input type="text" class="form-control admin-input" id="username" name="username">
-        </div>
-        <div class="checkbox">
-          <label>
-            <input type="checkbox" id="global_admin" name="global_admin" value=true> Global Administrator
-          </label>
-        </div>
-        <div class="form-group">
-          <label for="accountnumber">Account Number</label>
-          <input type="text" class="form-control input-threefifty" id="account_number" name="account_number">
-          <span class="help-block">Provide account number if the user is not a global administrator</span>
-        </div>
-        <button type="submit" class="btn btn-primary btn-md">Add Administrator</button>
-      </form>
-    </div>
-    {{ else }}
-    <p>1. check when listing indiviual admin </p>
-    <p>2. check when adding admin </p>
-    <p>3. check when associating admin </p>
-    <p>4. check when dis-associating admin </p>
-    <div class="col-lg-6">
-      <h3>Add Administrator</h3> 
-      <form action="/admins/add" method="post">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input type="text" class="form-control admin-input" id="username" name="username">
-        </div>
-        <div class="form-group">
-          <label for="accountnumber">Account Number</label>
-          <input type="text" class="form-control input-threefifty" id="account_number" name="account_number">
         </div>
         <button type="submit" class="btn btn-primary btn-md">Add Administrator</button>
       </form>
@@ -60,7 +22,6 @@
   <thead>
     <tr>
       <th>Username</th>
-      <th>Global Admin</th>
      </tr>
   </thead>
 
@@ -68,7 +29,6 @@
 {{ range $key, $value := .admins }}
      <tr>
        <td><a href="/admins/details/{{ $value.Username }}">{{ $value.Username }}</a></td>
-       <td><a href="/admins/details/{{ $value.Username }}">{{ if $value.GlobalAdmin }}True{{ else }}False{{ end }}</a></td>
     </tr>
 {{ end }}
   </tbody>

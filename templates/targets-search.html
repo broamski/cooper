@@ -8,7 +8,7 @@
 <div class="radio">
   <label>
     <input type="radio" name="assoc_id" id="assoc_id" value="{{ $value.Assoc.AssociationID }}" >
-    {{ $value.TargetName }}
+    <a href="/targets/details/{{ $value.Assoc.AssociationID}}">{{ $value.TargetName }}</a>
   </label>
 </div>
 
