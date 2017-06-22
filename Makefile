@@ -5,7 +5,7 @@ DEPS=\
 	 github.com/satori/go.uuid
 
 all:
-	@echo "Must specify an exact command."
+	@echo "Must specify an exact target."
 
 deps:
 	@for tool in  $(DEPS) ; do \
