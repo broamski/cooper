@@ -50,7 +50,6 @@ Assumption Targets
 ----
 
 #### Todo:
-- [ ] Add scoped administrators
 - [ ] CSRF Protection
 - [ ] SAML Authentication (pick lib, implement)
 
