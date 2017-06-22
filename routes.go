@@ -408,7 +408,6 @@ func Becomer(ddb *dynamodb.DynamoDB, s *sts.STS, k *kms.KMS) gin.HandlerFunc {
 			}
 
 			var creds *sts.Credentials
-			// var err error
 			if t.Type == "role" {
 				fmt.Println("getting credentials by assming role")
 				creds, err = ProcessRoleAssumption(s, t, form)
