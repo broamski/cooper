@@ -13,9 +13,6 @@ var funcMap = template.FuncMap{
 	"admin": func() bool {
 		return false
 	},
-	"globaladmin": func() bool {
-		return false
-	},
 }
 
 type CustomRender struct {
