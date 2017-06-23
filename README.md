@@ -50,7 +50,6 @@ Assumption Targets
 ----
 
 #### Todo:
-- [ ] CSRF Protection
 - [ ] SAML Authentication (pick lib, implement)
 
 ---

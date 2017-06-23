@@ -14,6 +14,7 @@
 
 {{ end }}
 <button type="submit" class="btn btn-danger">Remove Selected Assocation</button>
+<input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
 <a href="/targets" class="btn btn-primary" role="button">Back</a>
 </form>
 

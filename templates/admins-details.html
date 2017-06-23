@@ -6,6 +6,7 @@
 <form class="admin-list-form" action="/admins/remove" method="post">
    <div class="form-inline">
      <button type="submit" class="btn btn-danger" name="username" value="{{ .admin.Username }}">Delete Admin</button>
+     <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
      <a href="/admins" class="btn btn-info">Back</a>
    </div>
 </form>

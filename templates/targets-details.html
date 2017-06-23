@@ -6,6 +6,7 @@
   <div class="form-group">
   <input type="text" class="form-control" id="InputAssociateRoles" name="username" placeholder="test@example.com">
   <input type="hidden" name="assoc_id" value="{{ .target.ID }}">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
   <button type="submit" formaction="/targets/associate" class="btn btn-info">Associate Target To User</button>
   </div>
 </form>
@@ -26,6 +27,7 @@
 <h3>Edit Target</h3>
 <form method="post">
   <input type="hidden" name="target_id" value="{{ .target.ID }}">
+  <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
   <div class="form-group">
     <label for="target_name">Target Name</label>
     <input type="text" class="form-control" id="target_name" name="target_name" value="{{ .target.Name }} ">

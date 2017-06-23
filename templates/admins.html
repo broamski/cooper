@@ -8,6 +8,7 @@
         <div class="form-group tester">
           <label for="username">Username</label>
           <input type="text" class="form-control admin-input" id="username" name="username">
+          <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
         </div>
         <button type="submit" class="btn btn-primary btn-md">Add Administrator</button>
       </form>

@@ -13,6 +13,9 @@ var funcMap = template.FuncMap{
 	"admin": func() bool {
 		return false
 	},
+	"csrf_token": func() string {
+		return ""
+	},
 }
 
 type CustomRender struct {

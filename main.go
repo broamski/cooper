@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/broamski/cooper/csrf"
 	"github.com/broamski/cooper/templating"
 
 	"github.com/gin-contrib/sessions"
@@ -96,6 +97,7 @@ func main() {
 	templates.AddFromFiles("targets-search", baseTemplate, "templates/targets-search.html")
 	templates.AddFromFiles("targets-details", baseTemplate, "templates/targets-details.html")
 	templates.AddFromFiles("login", baseTemplate, "templates/login.html")
+	templates.AddFromFiles("errors", baseTemplate, "templates/errors.html")
 
 	gob.Register(Flash{})
 
@@ -108,6 +110,7 @@ func main() {
 	var secret = []byte("TkQzrflu3SNitU3M3toyoGh9P4r0yxVfpXn8v921")
 	store := sessions.NewCookieStore(secret)
 	r.Use(sessions.Sessions("session", store))
+	r.Use(csrf.Middleware())
 	r.GET("/", Authenticated(), Index(ddb))
 	r.GET("/admins", AuthenticatedAdmin(ddb), Admins(ddb))
 	r.GET("/admins/details/:userid", AuthenticatedAdmin(ddb), AdminsDetails(ddb))

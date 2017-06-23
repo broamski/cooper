@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/sts"
 
+	"github.com/broamski/cooper/csrf"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/satori/go.uuid"
@@ -98,6 +99,9 @@ func Admins(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 				a := IsAdmin(ddb, u)
 				return a
 			},
+			"csrf_token": func() string {
+				return csrf.GetToken(c)
+			},
 		}
 		session.Save()
 		c.HTML(200, "admins", gin.H{
@@ -122,6 +126,9 @@ func AdminsDetails(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			"admin": func() bool {
 				a := IsAdmin(ddb, u)
 				return a
+			},
+			"csrf_token": func() string {
+				return csrf.GetToken(c)
 			},
 		}
 		status, a, err := GetAdmin(ddb, uid)
@@ -217,6 +224,9 @@ func Index(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 				a := IsAdmin(ddb, u.(string))
 				return a
 			},
+			"csrf_token": func() string {
+				return csrf.GetToken(c)
+			},
 		}
 		c.HTML(200, "index", gin.H{
 			"title":    "aws portal",
@@ -258,6 +268,9 @@ func Targets(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 				a := IsAdmin(ddb, u)
 				return a
 			},
+			"csrf_token": func() string {
+				return csrf.GetToken(c)
+			},
 		}
 		session.Save()
 		c.HTML(200, "targets", gin.H{
@@ -295,6 +308,9 @@ func TargetsDetails(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			"admin": func() bool {
 				a := IsAdmin(ddb, u)
 				return a
+			},
+			"csrf_token": func() string {
+				return csrf.GetToken(c)
 			},
 		}
 		session.Save()
@@ -339,6 +355,9 @@ func TargetsSearch(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			"admin": func() bool {
 				a := IsAdmin(ddb, session.Get("username").(string))
 				return a
+			},
+			"csrf_token": func() string {
+				return csrf.GetToken(c)
 			},
 		}
 		session.Save()
