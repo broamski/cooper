@@ -15,8 +15,10 @@ import (
 	"github.com/broamski/cooper/csrf"
 	"github.com/broamski/cooper/templating"
 
+	"github.com/crewjam/saml"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/gwatts/gin-adapter"
 )
 
 var config struct {
@@ -111,6 +113,34 @@ func main() {
 	store := sessions.NewCookieStore(secret)
 	r.Use(sessions.Sessions("session", store))
 	r.Use(csrf.Middleware())
+
+	keyPair, err := tls.LoadX509KeyPair("myservice.cert", "myservice.key")
+	if err != nil {
+		panic(err) // TODO handle error
+	}
+	keyPair.Leaf, err = x509.ParseCertificate(keyPair.Certificate[0])
+	if err != nil {
+		panic(err) // TODO handle error
+	}
+
+	idpMetadataURL, err := url.Parse("https://www.testshib.org/metadata/testshib-providers.xml")
+	if err != nil {
+		panic(err) // TODO handle error
+	}
+
+	rootURL, err := url.Parse("http://localhost:8000")
+	if err != nil {
+		panic(err) // TODO handle error
+	}
+
+	samlSP, _ := samlsp.New(samlsp.Options{
+		IDPMetadataURL: idpMetadataURL,
+		URL:            *rootURL,
+		Key:            keyPair.PrivateKey.(*rsa.PrivateKey),
+		Certificate:    keyPair.Leaf,
+	})
+	r.GET("/saml", adapter.Wrap(samlSP))
+
 	r.GET("/", Authenticated(), Index(ddb))
 	r.GET("/admins", AuthenticatedAdmin(ddb), Admins(ddb))
 	r.GET("/admins/details/:userid", AuthenticatedAdmin(ddb), AdminsDetails(ddb))
