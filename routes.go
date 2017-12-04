@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"html/template"
-	"net/url"
 
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/kms"
@@ -16,6 +14,7 @@ import (
 )
 
 type Flash struct {
+	// success, info, warning or danger
 	Type    string
 	Message string
 }
@@ -28,187 +27,15 @@ func flasher(session sessions.Session, ftype, fmsg string) {
 	session.Save()
 }
 
-func Authenticated() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		session := sessions.Default(c)
-		u := session.Get("username")
-		if u == nil {
-			c.Redirect(307, "/login")
-			c.Abort()
-			return
-		}
-		c.Next()
-	}
-}
-
-func AuthenticatedAdmin(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		session := sessions.Default(c)
-		u := session.Get("username")
-		if u == nil {
-			c.Redirect(307, "/")
-			c.Abort()
-			return
-		}
-		admin, _, err := GetAdmin(ddb, u.(string))
-		if err != nil {
-			flasher(session, "danger", "there was a problem checking your authorization")
-			c.Redirect(307, "/")
-			c.Abort()
-			return
-		}
-		if !admin {
-			flasher(
-				session, "danger",
-				fmt.Sprintf("you are not authorized to view %s", c.Request.URL.Path),
-			)
-			c.Redirect(307, "/")
-			c.Abort()
-			return
-		}
-		c.Next()
-	}
-}
-
-func IsAdmin(ddb *dynamodb.DynamoDB, uid string) bool {
-	admin, _, err := GetAdmin(ddb, uid)
-	if err != nil {
-		return false
-	}
-	if admin {
-		return true
-	}
-	return false
-}
-
-// Admins allows the user to view all admins
-func Admins(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
-	fn := func(c *gin.Context) {
-		session := sessions.Default(c)
-		flashes := session.Flashes()
-		u := session.Get("username").(string)
-
-		admins := []Admin{}
-		admins, err := GetAdmins(ddb)
-		if err != nil {
-			flasher(session, "danger", fmt.Sprintf("An error occured retrieving admins list: %s", err))
-		}
-
-		var funcMap = template.FuncMap{
-			"admin": func() bool {
-				a := IsAdmin(ddb, u)
-				return a
-			},
-			"csrf_token": func() string {
-				return csrf.GetToken(c)
-			},
-		}
-		session.Save()
-		c.HTML(200, "admins", gin.H{
-			"title":   "admins",
-			"header":  "Portal Admins",
-			"admins":  admins,
-			"flashes": flashes,
-			"cfunc":   funcMap,
-		})
-	}
-	return gin.HandlerFunc(fn)
-}
-
-func AdminsDetails(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
-	fn := func(c *gin.Context) {
-		session := sessions.Default(c)
-		flashes := session.Flashes()
-		u := session.Get("username").(string)
-		uid := c.Param("userid")
-
-		var funcMap = template.FuncMap{
-			"admin": func() bool {
-				a := IsAdmin(ddb, u)
-				return a
-			},
-			"csrf_token": func() string {
-				return csrf.GetToken(c)
-			},
-		}
-		status, a, err := GetAdmin(ddb, uid)
-		fmt.Println(a)
-		if err != nil {
-			flasher(session, "danger", fmt.Sprintf("there was an error: %s", err))
-			c.Redirect(302, "/admins")
-			return
-		}
-		if !status {
-			flasher(session, "danger", fmt.Sprintf("Could not find admin: %s", uid))
-			c.Redirect(302, "/admins")
-			return
-		}
-		session.Save()
-		c.HTML(200, "admins-details", gin.H{
-			"title":   fmt.Sprintf("admin details - %s", uid),
-			"flashes": flashes,
-			"admin":   a,
-			"cfunc":   funcMap,
-		})
-	}
-	return gin.HandlerFunc(fn)
-}
-
-func AdminsAdd(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
-	fn := func(c *gin.Context) {
-		session := sessions.Default(c)
-		var form Admin
-		err := c.Bind(&form)
-		if err != nil {
-			flasher(session, "danger", "payload is invalid or missing")
-			c.Redirect(302, "some bad shit happened")
-			return
-		}
-		fmt.Println(fmt.Sprintf("%+v", form))
-		err = AddAdmin(ddb, form)
-		if err != nil {
-			flasher(session, "danger", fmt.Sprintf("error adding admin %s: %s", form.Username, err))
-			c.Redirect(302, "/admins")
-			return
-		}
-
-		flasher(session, "success", fmt.Sprintf("added admin: %s", form.Username))
-		c.Redirect(302, "/admins")
-		return
-	}
-	return gin.HandlerFunc(fn)
-}
-
-func AdminsRemove(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
-	fn := func(c *gin.Context) {
-		session := sessions.Default(c)
-		u := c.PostForm("username")
-		var form Admin
-		err := c.Bind(&form)
-		if err != nil {
-			flasher(session, "danger", "username missing or invalid")
-			c.Redirect(302, "some bad shit happened")
-			return
-		}
-		err = RemoveAdmin(ddb, u)
-		if err != nil {
-			flasher(session, "danger", fmt.Sprintf("error removing admin %s: %s", form.Username, err))
-			c.Redirect(302, "/admins")
-			return
-		}
-		flasher(session, "success", fmt.Sprintf("removed admin: %s", form.Username))
-		c.Redirect(302, "/admins")
-		return
-	}
-	return gin.HandlerFunc(fn)
-}
-
 func Index(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
 		flashes := session.Flashes()
-		u := session.Get("username")
-		as, err := GetAssociations(ddb, u.(string))
+		//u := session.Get("username")
+		u := c.Request.Header.Get("X-Saml-Firstname")
+		groups := c.Request.Header["X-Saml-Awsgroups"]
+		fmt.Println(c.Request.Header["X-Saml-Awsgroups"])
+		as, err := GetAssociations(ddb, groups)
 		if err != nil {
 			// hack a new, non-session flash into the flashes map so that
 			// an error can be displayed on the current loading page
@@ -218,35 +45,25 @@ func Index(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			}
 			flashes = append(flashes, gf)
 		}
+		//zz := csrf.GetToken(c)
+		//fmt.Println(zz)
 		session.Save()
-		var funcMap = template.FuncMap{
-			"admin": func() bool {
-				a := IsAdmin(ddb, u.(string))
-				return a
-			},
-			"csrf_token": func() string {
-				return csrf.GetToken(c)
-			},
-		}
 		c.HTML(200, "index", gin.H{
-			"title":    "aws portal",
-			"username": u,
-			"flashes":  flashes,
-			"assoc":    as,
-			"cfunc":    funcMap,
+			"IsAdmin":    IsAdmin(ddb, groups),
+			"title":      "aws portal",
+			"username":   u,
+			"flashes":    flashes,
+			"assoc":      as,
+			"csrf_token": csrf.GetToken(c),
 		})
 	}
 }
 
-func Login(c *gin.Context) {
-	c.HTML(200, "login", gin.H{
-		"title": "Login",
-	})
-}
-
 func Logout(c *gin.Context) {
+	c.SetCookie("token", "", 1, "/", "", false, false)
 	session := sessions.Default(c)
-	session.Delete("username")
+	session.Delete("token")
+	session.Delete("session")
 	session.Save()
 	c.Redirect(307, "/")
 	return
@@ -256,30 +73,23 @@ func Targets(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		session := sessions.Default(c)
 		flashes := session.Flashes()
-		u := session.Get("username").(string)
+		u := c.Request.Header.Get("X-Saml-Email")
+		groups := c.Request.Header["X-Saml-Awsgroups"]
 		targets, err := GetTargets(ddb)
 		if err != nil {
 			flasher(session, "danger", "you are not allowed to become this target")
 			c.Redirect(302, "/targets")
 			return
 		}
-		var funcMap = template.FuncMap{
-			"admin": func() bool {
-				a := IsAdmin(ddb, u)
-				return a
-			},
-			"csrf_token": func() string {
-				return csrf.GetToken(c)
-			},
-		}
 		session.Save()
 		c.HTML(200, "targets", gin.H{
-			"title":    "targets",
-			"header":   "Target Management",
-			"username": u,
-			"flashes":  flashes,
-			"targets":  targets,
-			"cfunc":    funcMap,
+			"IsAdmin":    IsAdmin(ddb, groups),
+			"title":      "targets",
+			"header":     "Target Management",
+			"username":   u,
+			"flashes":    flashes,
+			"targets":    targets,
+			"csrf_token": csrf.GetToken(c),
 		})
 	}
 	return gin.HandlerFunc(fn)
@@ -289,7 +99,7 @@ func TargetsDetails(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		session := sessions.Default(c)
 		flashes := session.Flashes()
-		u := session.Get("username").(string)
+		groups := c.Request.Header["X-Saml-Awsgroups"]
 		tid := c.Param("targetid")
 		t, err := GetTarget(ddb, tid)
 		if err != nil {
@@ -303,80 +113,24 @@ func TargetsDetails(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			c.Redirect(302, "/targets")
 			return
 		}
-		users, _ := GetTargetUsers(ddb, tid)
-		var funcMap = template.FuncMap{
-			"admin": func() bool {
-				a := IsAdmin(ddb, u)
-				return a
-			},
-			"csrf_token": func() string {
-				return csrf.GetToken(c)
-			},
-		}
 		session.Save()
 		c.HTML(200, "targets-details", gin.H{
-			"title":   fmt.Sprintf("target details - %s", t.Name),
-			"flashes": flashes,
-			"target":  t,
-			"users":   users,
-			"cfunc":   funcMap,
-		})
-	}
-	return gin.HandlerFunc(fn)
-}
-
-func TargetsSearch(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
-	fn := func(c *gin.Context) {
-		session := sessions.Default(c)
-		flashes := session.Flashes()
-		u, ok := c.GetQuery("username")
-		if !ok {
-			flasher(session, "danger", "could not get username from query string")
-			c.Redirect(302, "/targets")
-			return
-		}
-		if len(u) == 0 {
-			flasher(session, "warning", "you must enter a usename to search for")
-			c.Redirect(302, "/targets")
-			return
-		}
-		a, err := GetAssociations(ddb, u)
-		if err != nil {
-			flasher(session, "danger", fmt.Sprintf("error: %s", err))
-			c.Redirect(302, "/targets")
-			return
-		}
-		if len(a) == 0 {
-			flasher(session, "warning", fmt.Sprintf("no assocations found for user %s", u))
-			c.Redirect(302, "/targets")
-			return
-		}
-		var funcMap = template.FuncMap{
-			"admin": func() bool {
-				a := IsAdmin(ddb, session.Get("username").(string))
-				return a
-			},
-			"csrf_token": func() string {
-				return csrf.GetToken(c)
-			},
-		}
-		session.Save()
-		c.HTML(200, "targets-search", gin.H{
-			"title":      "targets - search",
-			"usersearch": u,
+			"IsAdmin":    IsAdmin(ddb, groups),
+			"title":      fmt.Sprintf("target details - %s", t.Name),
 			"flashes":    flashes,
-			"utargets":   a,
-			"cfunc":      funcMap,
+			"target":     t,
+			"csrf_token": csrf.GetToken(c),
 		})
 	}
 	return gin.HandlerFunc(fn)
 }
 
 type Become struct {
-	UserID   string `form:"-" json:"-"`
-	TargetID string `form:"target_id" json:"target_id"`
-	Duration string `form:"duration" json:"duration"`
-	Format   string `form:"format" json:"format" binding:"required"`
+	UserID       string `form:"-" json:"-"`
+	TargetID     string `form:"target_id" json:"target_id"`
+	Duration     string `form:"duration" json:"duration"`
+	Format       string `form:"format" json:"format" binding:"required"`
+	SecondFactor string `form:"second_factor" json:"second_factor" binding:"required"`
 }
 
 func (b Become) ValidateFormat() bool {
@@ -392,8 +146,11 @@ func (b Become) ValidateFormat() bool {
 func Becomer(ddb *dynamodb.DynamoDB, s *sts.STS, k *kms.KMS) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		session := sessions.Default(c)
-		who := session.Get("username")
-		fmt.Println("Hi", who, "!")
+		username := c.Request.Header.Get("X-Saml-Email")
+		actual_username := c.Request.Header.Get("X-Saml-Username")
+		fmt.Println(actual_username)
+		groups := c.Request.Header["X-Saml-Awsgroups"]
+		fmt.Println("Hi", username, "!")
 		var form Become
 		err := c.Bind(&form)
 		if err != nil {
@@ -412,17 +169,32 @@ func Becomer(ddb *dynamodb.DynamoDB, s *sts.STS, k *kms.KMS) gin.HandlerFunc {
 			}
 			return
 		}
-		form.UserID = who.(string)
-		fmt.Println(fmt.Sprintf("%+v", form))
-		ia, err := IsAssociated(ddb, form.UserID, form.TargetID)
+		form.UserID = username
+		allowed, err := AllowedToBecome(ddb, groups, form.TargetID)
 		if err != nil {
-			c.String(500, "something bad happened", err)
+			fmt.Println(err)
+			flasher(session, "danger", fmt.Sprintf("%s", err))
+			c.Redirect(301, "/")
+			c.Abort()
 			return
 		}
-		if ia {
+		if allowed {
+			duoAuthClient := NewDuoAuthClient(ParsedConfigFile.Duo)
+
+			result, err := processSecondFactorDuo(duoAuthClient, username, form.SecondFactor)
+			if !result || err != nil {
+				flasher(session, "danger", err.Error())
+				c.Redirect(301, "/")
+				c.Abort()
+				return
+			}
+
 			t, err := GetTarget(ddb, form.TargetID)
 			if err != nil {
-				c.String(500, "becomer->GetTarget error", err)
+				fmt.Println(err)
+				flasher(session, "danger", fmt.Sprintf("coult not get target: %s", err))
+				c.Redirect(301, "/")
+				c.Abort()
 				return
 			}
 
@@ -432,7 +204,7 @@ func Becomer(ddb *dynamodb.DynamoDB, s *sts.STS, k *kms.KMS) gin.HandlerFunc {
 				creds, err = ProcessRoleAssumption(s, t, form)
 				if err != nil {
 					fmt.Println(err)
-					flasher(session, "danger", fmt.Sprint("%s", err))
+					flasher(session, "danger", fmt.Sprint(err))
 					c.Redirect(301, "/")
 					c.Abort()
 					return
@@ -479,13 +251,28 @@ func Becomer(ddb *dynamodb.DynamoDB, s *sts.STS, k *kms.KMS) gin.HandlerFunc {
 func TargetsAdd(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		session := sessions.Default(c)
+		username := c.Request.Header.Get("X-Saml-Email")
 		var form Target
 		err := c.Bind(&form)
 		if err != nil {
-			flasher(session, "danger", "username missing or invalid")
+			flasher(session, "danger", "there was a problem processing form data")
 			c.Redirect(302, "/targets")
 			return
 		}
+
+		secondFactor := c.DefaultPostForm("second_factor", "auto")
+		duoAuthClient := NewDuoAuthClient(ParsedConfigFile.Duo)
+
+		result, err := processSecondFactorDuo(duoAuthClient, username, secondFactor)
+		if !result || err != nil {
+			flasher(session, "danger", err.Error())
+			c.Redirect(301, "/targets")
+			c.Abort()
+			return
+		} else {
+			fmt.Println("2fa successfully completed")
+		}
+
 		form.ID = uuid.NewV4().String()
 		err = AddTarget(ddb, form)
 		if err != nil {
@@ -503,6 +290,8 @@ func TargetsAdd(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 func TargetsRemove(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		session := sessions.Default(c)
+		username := c.Request.Header.Get("X-Saml-Email")
+
 		var form Target
 		err := c.Bind(&form)
 		if err != nil {
@@ -510,6 +299,20 @@ func TargetsRemove(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			c.Redirect(302, "/targets")
 			return
 		}
+
+		secondFactor := c.DefaultPostForm("second_factor", "auto")
+		duoAuthClient := NewDuoAuthClient(ParsedConfigFile.Duo)
+
+		result, err := processSecondFactorDuo(duoAuthClient, username, secondFactor)
+		if !result || err != nil {
+			flasher(session, "danger", err.Error())
+			c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.ID))
+			c.Abort()
+			return
+		} else {
+			fmt.Println("2fa successfully completed")
+		}
+
 		err = RemoveTarget(ddb, form.ID)
 		if err != nil {
 			flasher(session, "danger", fmt.Sprintf("error removing target %s: %s", form, err))
@@ -526,6 +329,8 @@ func TargetsRemove(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 func TargetsUpdate(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 	fn := func(c *gin.Context) {
 		session := sessions.Default(c)
+		username := c.Request.Header.Get("X-Saml-Email")
+
 		var form Target
 		err := c.Bind(&form)
 		if err != nil {
@@ -537,6 +342,20 @@ func TargetsUpdate(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.ID))
 			return
 		}
+
+		secondFactor := c.DefaultPostForm("second_factor", "auto")
+		duoAuthClient := NewDuoAuthClient(ParsedConfigFile.Duo)
+
+		result, err := processSecondFactorDuo(duoAuthClient, username, secondFactor)
+		if !result || err != nil {
+			flasher(session, "danger", err.Error())
+			c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.ID))
+			c.Abort()
+			return
+		} else {
+			fmt.Println("2fa successfully completed")
+		}
+
 		err = UpdateTarget(ddb, form)
 		if err != nil {
 			flasher(session, "danger", fmt.Sprintf("could not update target: %+v, %s", form, err))
@@ -549,84 +368,6 @@ func TargetsUpdate(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 		}
 		flasher(session, "success", fmt.Sprintf("succssfully updated target: %-v", form))
 		c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.ID))
-	}
-	return gin.HandlerFunc(fn)
-}
-
-type TargetAction struct {
-	Username string `form:"username"`
-	AssocID  string `form:"assoc_id"`
-}
-
-func TargetsAssoc(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
-	fn := func(c *gin.Context) {
-		session := sessions.Default(c)
-		var form TargetAction
-		err := c.Bind(&form)
-		fmt.Println(fmt.Sprintf("%+v", form))
-		if err != nil {
-			flasher(session, "danger", fmt.Sprintf("problem with incoming payload: %s", err))
-			if len(form.AssocID) == 0 {
-				c.Redirect(302, "/targets")
-				return
-			}
-			c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.AssocID))
-			return
-		}
-		if len(form.Username) == 0 {
-			flasher(session, "danger", "username input cannot be empty")
-			c.Redirect(302, "/targets")
-			return
-		}
-		err = AssociateTarget(ddb, form.Username, form.AssocID)
-		if err != nil {
-			fmt.Println("AssociateTarget err")
-			flasher(
-				session,
-				"danger",
-				fmt.Sprintf("error associating target %s from %s: %s", form.AssocID, form.Username, err),
-			)
-			if len(form.AssocID) == 0 {
-				c.Redirect(302, "/targets")
-				return
-			}
-			c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.AssocID))
-			return
-		}
-		fmt.Println("okay i am good")
-		flasher(session, "success", fmt.Sprintf("associated target %s to %s", form.AssocID, form.Username))
-		c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.AssocID))
-	}
-	return gin.HandlerFunc(fn)
-}
-
-func TargetsDisassoc(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
-	fn := func(c *gin.Context) {
-		session := sessions.Default(c)
-		var form TargetAction
-		err := c.Bind(&form)
-		if err != nil {
-			flasher(session, "danger", fmt.Sprintf("payload invalid or missing: %s", err))
-			if len(form.Username) == 0 {
-				c.Redirect(302, "/targets")
-				return
-			}
-			c.Redirect(302, fmt.Sprintf("/targets/search?username=%s", url.QueryEscape(form.Username)))
-			return
-		}
-		err = DisassociateTarget(ddb, form.Username, form.AssocID)
-		if err != nil {
-			flasher(session, "danger", fmt.Sprintf("error disassocating target %s from %s: %s", form.AssocID, form.Username, err))
-			if len(form.Username) == 0 {
-				c.Redirect(302, "/targets")
-				return
-			}
-			c.Redirect(302, fmt.Sprintf("/targets/search?username=%s", url.QueryEscape(form.Username)))
-			return
-		}
-		flasher(session, "success", fmt.Sprintf("disassocated target %s from %s", form.AssocID, form.Username))
-		c.Redirect(302, fmt.Sprintf("/targets/search?username=%s", url.QueryEscape(form.Username)))
-		return
 	}
 	return gin.HandlerFunc(fn)
 }

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kms"
@@ -25,7 +26,12 @@ func ProcessRoleAssumption(s *sts.STS, t Target, b Become) (*sts.Credentials, er
 	}
 	resp, err := s.AssumeRole(params)
 	if err != nil {
-		return &sts.Credentials{}, fmt.Errorf("could not assume role", err)
+		if awsErr, ok := err.(awserr.Error); ok {
+			return &sts.Credentials{}, fmt.Errorf("could not assume role: %s", awsErr.Message())
+			// process SDK error
+		} else {
+			return &sts.Credentials{}, fmt.Errorf("could not assume role: %s", err)
+		}
 	}
 	return resp.Credentials, nil
 }
@@ -75,7 +81,7 @@ func ProcessFederation(km *kms.KMS, t Target, b Become) (*sts.Credentials, error
 		// Print the error, cast err to awserr.Error to get the Code and
 		// Message from an error.
 		fmt.Println(err.Error())
-		return &sts.Credentials{}, fmt.Errorf("could not federate user", err)
+		return &sts.Credentials{}, fmt.Errorf("could not federate user: %s", err)
 	}
 	return resp.Credentials, nil
 }
@@ -129,7 +135,7 @@ func Portalize(aro *sts.Credentials) string {
 	rp := make(url.Values)
 	rp.Set("Action", "login")
 	// make this an environment variable or.. inspect the incoming request
-	rp.Set("Issuer", "https://aws.bnuz.co")
+	rp.Set("Issuer", ParsedConfigFile.IssuerURL)
 	rp.Set("Destination", "https://console.aws.amazon.com/")
 	rp.Set("SigninToken", st.SigninToken)
 

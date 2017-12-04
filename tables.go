@@ -15,17 +15,17 @@ type DDBTable struct {
 	ProvisionedThroughput *dynamodb.ProvisionedThroughput
 }
 
-var portalAdmins = DDBTable{
-	"cooper_portal_admins",
+var portalValues = DDBTable{
+	"cooper_portal",
 	[]*dynamodb.KeySchemaElement{
 		{
-			AttributeName: aws.String("username"),
+			AttributeName: aws.String("item"),
 			KeyType:       aws.String("HASH"),
 		},
 	},
 	[]*dynamodb.AttributeDefinition{
 		{
-			AttributeName: aws.String("username"),
+			AttributeName: aws.String("item"),
 			AttributeType: aws.String("S"),
 		},
 	},
@@ -55,35 +55,7 @@ var portalTargets = DDBTable{
 	},
 }
 
-var portalUserAssc = DDBTable{
-	"cooper_portal_user_associations",
-	[]*dynamodb.KeySchemaElement{
-		{
-			AttributeName: aws.String("username"),
-			KeyType:       aws.String("HASH"),
-		},
-		{
-			AttributeName: aws.String("assoc_id"),
-			KeyType:       aws.String("RANGE"),
-		},
-	},
-	[]*dynamodb.AttributeDefinition{
-		{
-			AttributeName: aws.String("username"),
-			AttributeType: aws.String("S"),
-		},
-		{
-			AttributeName: aws.String("assoc_id"),
-			AttributeType: aws.String("S"),
-		},
-	},
-	&dynamodb.ProvisionedThroughput{
-		ReadCapacityUnits:  aws.Int64(1),
-		WriteCapacityUnits: aws.Int64(1),
-	},
-}
-
-var ddbTables = []DDBTable{portalAdmins, portalTargets, portalUserAssc}
+var ddbTables = []DDBTable{portalTargets, portalValues}
 
 // CreateTables creates all of the required tables to support the application
 func CreateTables(svc *dynamodb.DynamoDB) {

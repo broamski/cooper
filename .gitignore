@@ -25,3 +25,4 @@ _testmain.go
 *.test
 
 .DS_Store
+config.yaml

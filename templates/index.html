@@ -11,32 +11,45 @@
     <li><strong>Credentials File</strong> will download a credentials file to your computer. This file can then be placed in <code>~/.aws/credentials</code></li>
   </ul>
 </p>
-<form class="form-inline" method="post" action="/become">
-  <div class="form-group">
-    <label for="target_select">Target Name</label>
-    <select id="target_select" class="form-control" name="target_id">
-      <option value="77">Role 77 (doesn't exist)</option>
-{{ range $key, $val := .assoc }}
-      <option value="{{ $val.Assoc.AssociationID }}">Role {{ $val.TargetName }} | ({{ $val.AccountNumber }})</option>
-{{ end }}
-    </select>
+<form method="post" action="/become">
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label for="target_select">Target Name</label>
+      <select id="target_select" class="form-control" name="target_id">
+        <option value="6fa37677-5442-4204-9f3c-3abda2c1d320">Attempt invalid</option>
+      {{ range $key, $val := .assoc }}
+        <option value="{{ $val.Assoc.ID }}">{{ $val.Assoc.Name }} | ({{ $val.AccountNumber }} | type: {{ $val.Assoc.Type }})</option>
+      {{ end }}
+      </select>
+    </div>
+     <div class="form-group col-md-2">
+       <label for="target_duration">Duration</label>
+       <select id="target_duration" class="form-control" name="duration">
+         <option value="3600">3600</option>
+         <option value="8000">8000</option>
+         <option value="162400">162400</option>
+       </select>
+     </div>
 
-    <label for="target_duration">Duration</label>
-    <select id="target_duration" class="form-control" name="duration">
-      <option value="3600">3600</option>
-      <option value="8000">8000</option>
-      <option value="162400">162400</option>
-    </select>
+    <div class="form-group col-md-2">
+      <label for="target_format">Format</label>
+      <select id="target_format" class="form-control" name="format">
+        <option value="console">Console</option>
+        <option value="credentials">Credentials File</option>
+        <option value="thingy">THingy</option>
+      </select>
+    </div>
 
-    <label for="target_format">Format</label>
-    <select id="target_format" class="form-control" name="format">
-      <option value="console">Console</option>
-      <option value="credentials">Credentials File</option>
-      <option value="thingy">THingy</option>
-    </select>
+    <div class="form-group col-md-2">
+      <label for="target_group_mapping">Second Factor</label>
+      <input type="text" class="form-control" id="second_factor" name="second_factor" value="push">
+    </div>
   </div>
-  <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-  <button type="submit" class="btn btn-primary">Go!</button>
+
+  <button type="submit" class="btn btn-primary">Consoleize Me!</button>
+  <!-- <button type="submit" class="btn btn-primary">Consoleize Me!</button> -->
+  <input type="hidden" name="_csrf_token" value="{{ .csrf_token }}">
+
 </form>
 
 {{ else }}

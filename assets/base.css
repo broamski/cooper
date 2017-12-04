@@ -3,17 +3,23 @@ body {
   padding-top: 70px;
 }
 
+/* 
 #target_select {
   width: 400px;
-}
+} 
+*/
 
+/* 
 #target_duration {
   width: 100px;
 }
+*/
 
+/* 
 #target_format {
   width: 125px;
 }
+*/
 
 .admin-label {
     font-size: 20px;

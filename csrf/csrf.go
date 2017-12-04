@@ -4,8 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
-	// "net/url"
+	"log"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -16,6 +15,7 @@ const (
 )
 
 var bypassMethods = []string{"GET", "HEAD", "OPTIONS", "TRACE"}
+var bypassPaths = []string{"/saml/acs"}
 
 func contains(s []string, value string) bool {
 	for _, v := range s {
@@ -32,7 +32,7 @@ func Middleware() gin.HandlerFunc {
 		existing := session.Get(key_name)
 
 		if existing == nil {
-			fmt.Println("you don't have a token set, setting it")
+			//log.Println("you don't have a token set, setting it")
 			b := make([]byte, 40)
 			_, err := rand.Read(b)
 			if err != nil {
@@ -46,20 +46,19 @@ func Middleware() gin.HandlerFunc {
 			session.Set(key_name, sha1_hash)
 		}
 
-		// no need to inspect for _csrf_token on safe methods
+		// no need to inspect for _csrf_token on safe methods and paths
 		if contains(bypassMethods, c.Request.Method) {
 			c.Next()
 			return
 		}
 
+		if contains(bypassPaths, c.Request.URL.Path) {
+			c.Next()
+			return
+		}
+
 		if c.Request.FormValue("_csrf_token") != session.Get(key_name) {
-			fmt.Println("csrf proection triggered")
-			// var location = "/"
-			// if c.Request.Referer() != "" {
-			// 	u, _ := url.Parse(c.Request.Referer())
-			// 	location = u.Path
-			// 	fmt.Println(location)
-			// }
+			log.Println("csrf proection triggered for request:", c.Request)
 			c.HTML(400, "errors", gin.H{
 				"title":         "error!",
 				"error_message": "CSRF Protection Triggered",

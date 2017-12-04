@@ -1,16 +1,5 @@
 {{ define "content" }}
 
-<h3>User Search</h3>
-<form class="form-inline" method="get" action="/targets/search">
-  <div class="form-group">
-    <input type="text" class="form-control" id="search_username" name="username">
-  </div>
-  <button type="submit" class="btn btn-default">Show Associated Targets</button>
-  <p class="help-block">List all target assocations for the provided user</p>
-</form>
-    
-<hr/>
-
 <h3>Available Targets</h3>
 <table class="table table-striped">
   <thead>
@@ -33,33 +22,50 @@
 </table>
 <hr/>
 <form method="post" action="/targets/add">
-  <div class="form-group">
-    <label for="target_name">Target Name</label>
-    <input type="text" class="form-control" id="target_name" name="target_name">
+  <div class="form-row">
+    <div class="form-group col-md-8">
+      <label for="target_name">Target Name</label>
+      <input type="text" class="form-control" id="target_name" name="target_name">
+    </div>
+    <div class="form-group col-md-4">
+      <label for="target_type">Target Type</label>
+      <select class="form-control" id="target_type" name="target_type">
+      <option value="role">IAM Role</option>
+      <option value="user">Federated IAM User</option>
+      </select>
+    </div>
   </div>
-  <div class="form-group">
-    <label for="target_type">Target Type</label>
-    <select class="form-control" id="target_type" name="target_type">
-    <option value="role">IAM Role</option>
-    <option value="user">Federated IAM User</option>
-    </select>
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label for="target_arn">Target ARN</label>
+      <input type="text" class="form-control" id="target_arn" name="target_arn">
+    </div>
+    <div class="form-group col-md-6">
+      <label for="target_external_id">External ID</label>
+      <var>Only applicable for targets of type: IAM Role</var>
+      <input type="text" class="form-control" id="target_external_id" name="target_external_id">
+    </div>
   </div>
-  <div class="form-group">
-    <label for="target_arn">Target ARN</label>
-    <input type="text" class="form-control" id="target_arn" name="target_arn">
+  <div class="form-row">
+    <div class="form-group col-md-12">
+      <label for="target_fed_creds">Federation Keys</label>
+      <var>Encrypted value of: "access_key_id|secret_access_key". Encrypt using -encrypt flag. Only applicable for targets of type: Federation User</var>
+      <input type="text" class="form-control" id="target_fed_creds" name="target_fed_creds">
+    </div>
   </div>
-  <div class="form-group">
-    <label for="target_external_id">External ID</label>
-	<var>Only applicable for targets of type: IAM Role</var>
-    <input type="text" class="form-control" id="target_external_id" name="target_external_id">
-  </div>
-  <div class="form-group">
-    <label for="target_fed_creds">Federation Keys</label>
-	<var>Only applicable for targets of type: Federation User</var>
-    <input type="text" class="form-control" id="target_fed_creds" name="target_fed_creds">
+  <div class="form-row">
+    <div class="form-group col-md-6">
+      <label for="target_group_mapping">IdP Group Mapping</label>
+      <var>IdP group name ties membership to this target.</var>
+      <input type="text" class="form-control" id="target_group_mapping" name="target_group_mapping">
+    </div>
+    <div class="form-group col-md-6">
+      <label for="target_group_mapping">Second Factor</label>
+      <input type="text" class="form-control" id="second_factor" name="second_factor" value="push">
+    </div>
   </div>
   <button type="submit" class="btn btn-primary">Add Target</button>
-  <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="_csrf_token" value="{{ .csrf_token }}">
 </form>
 
 {{ end }}

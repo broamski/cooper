@@ -2,35 +2,14 @@
 
 <h3>Target: {{ .target.Name }}</h3>
 <hr/>
-<form method="post">
-  <div class="form-group">
-  <input type="text" class="form-control" id="InputAssociateRoles" name="username" placeholder="test@example.com">
-  <input type="hidden" name="assoc_id" value="{{ .target.ID }}">
-  <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-  <button type="submit" formaction="/targets/associate" class="btn btn-info">Associate Target To User</button>
-  </div>
-</form>
 
-<hr/>
-<p>User Assocations:{{ len .users }}</p>
-<table class="table table-striped table-bordered">
-  <tbody>
-{{ range $key, $val := .users }}
-    <tr>
-      <td><a href="/targets/search?username={{ $val.Username }}">{{ $val.Username }}</td>
-    </tr>
-{{ end }}
-  </tbody>
-</table>
-
-<hr/>
 <h3>Edit Target</h3>
 <form method="post">
   <input type="hidden" name="target_id" value="{{ .target.ID }}">
-  <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+  <input type="hidden" name="_csrf_token" value="{{ .csrf_token }}">
   <div class="form-group">
     <label for="target_name">Target Name</label>
-    <input type="text" class="form-control" id="target_name" name="target_name" value="{{ .target.Name }} ">
+    <input type="text" class="form-control" id="target_name" name="target_name" value="{{ .target.Name }}">
   </div>
   <div class="form-group">
     <label for="target_type">Target Type</label>
@@ -53,9 +32,17 @@
     <input type="text" class="form-control" id="target_fed_creds" name="target_fed_creds" value="{{ .target.FederatedCredentials }}">
   </div>
   <div class="form-group">
-    <button type="submit" formaction="/targets/update" method="post" class="btn btn-primary">Update Target</button></br></br>
-    <button type="submit" formaction="/targets/remove" method="post" class="btn btn-danger">Delete Target</button></br></br>
+    <label for="target_group_mapping">Mapped Group</label>
+    <input type="text" class="form-control" id="target_group_mapping" name="target_group_mapping" value="{{ .target.GroupMapping }}">
   </div>
+  <div class="form-group">
+    <label for="target_group_mapping">Second Factor</label>
+	<input type="text" class="form-control" id="second_factor" name="second_factor" value="push">
+  </div>
+   <div class="btn-group" role="group">
+     <button type="submit" method="post" formaction="/targets/update" class="btn btn-primary btn-lg">Update Target</button>
+     <button type="submit" method="post" formaction="/targets/remove" class="btn btn-danger btn-lg">Delete Target</button>
+   </div>
 </form>
 
 {{ end }}
