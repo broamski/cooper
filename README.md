@@ -19,8 +19,6 @@ Create an AWS account exclusively for cooper operations. This can reduce the sco
 
 #### **Target** - A `Target` is any IAM Role or Federated User that you could potentially become.
 
-#### **Target Assoication** - A user is **associated** to a `Target`, meaning that user is allowed to pursue becoming that target.
-
 ----
 
 #### Build Specifications
@@ -32,13 +30,12 @@ Create an AWS account exclusively for cooper operations. This can reduce the sco
 #### Authentication - Extendable and flexible, to include any number of these:
  - Local authentication sceheme (local meaning handled on the backend)
  - SAML Integration - Use your typical SSO: Okta, OneLogin, etc.
- - Google Authentication - Google for work is popular, so this is helpful 
 
 #### Authorization
 
 Administrators
- - Universal Scope
- - AWS Account Scope
+ - Can add/remove/modify targets and their group asssociations
+ - Deteremined via IdP group membership
  
 Assumption Targets
  - IAM Roles
@@ -48,11 +45,6 @@ Assumption Targets
 
 
 ----
-
-#### Todo:
-- [ ] SAML Authentication (pick lib, implement)
-
----
 
 #### Execution Examples
 
