@@ -1,0 +1,9 @@
+---
+duo:
+  skey: <KMS_ENCRYPTED_SKEY>
+  ikey: <INTEGRATION_IKEY>
+  apihost: <INTEGRATION_API_HOST>
+issuer_url: http://localhost:8080
+idp_metadata_url: https://something.site/metatdata
+saml_cert_path: /tmp/myservice.cert
+saml_key_path: /tm/myservice.key
