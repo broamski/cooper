@@ -62,7 +62,7 @@ func ProcessFederation(km *kms.KMS, t Target, b Become) (*sts.Credentials, error
 	c := credentials.NewStaticCredentials(k, s, "")
 	sess, err := session.NewSession(&aws.Config{
 		Credentials: c,
-		Region:      aws.String(config.Region),
+		Region:      aws.String(Config.Region),
 		MaxRetries:  aws.Int(5),
 	})
 	if err != nil {
@@ -134,8 +134,7 @@ func Portalize(aro *sts.Credentials) string {
 
 	rp := make(url.Values)
 	rp.Set("Action", "login")
-	// make this an environment variable or.. inspect the incoming request
-	rp.Set("Issuer", ParsedConfigFile.IssuerURL)
+	rp.Set("Issuer", Config.IssuerURL)
 	rp.Set("Destination", "https://console.aws.amazon.com/")
 	rp.Set("SigninToken", st.SigninToken)
 

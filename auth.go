@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -27,6 +28,39 @@ func AuthAdmin(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			c.Redirect(307, "/")
 			c.Abort()
 			return
+		}
+
+		// check for ip rescrictions
+		if len(Config.AdminIPRestrictions) > 0 {
+			restricted := true
+			for _, v := range Config.AdminIPRestrictions {
+				fmt.Println("this is a provided rescrited admin IP:", v)
+				_, ipnet, err := net.ParseCIDR(v)
+				if err != nil {
+					fmt.Println("An improper CIDR was supplied for admin restrictions:", v)
+					flasher(
+						session, "danger",
+						fmt.Sprintf("An error occurred!"),
+					)
+					c.Redirect(307, "/")
+					c.Abort()
+					return
+				}
+				requestIP := net.ParseIP(c.ClientIP())
+				fmt.Println(requestIP)
+				if ipnet.Contains(requestIP) {
+					restricted = false
+				}
+			}
+			if restricted {
+				flasher(
+					session, "danger",
+					fmt.Sprintf("Your IP not permitted to perform administrative activities"),
+				)
+				c.Redirect(307, "/")
+				c.Abort()
+				return
+			}
 		}
 
 		result := IsAdmin(ddb, groups)

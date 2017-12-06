@@ -16,10 +16,10 @@
     <div class="form-group col-md-6">
       <label for="target_select">Target Name</label>
       <select id="target_select" class="form-control" name="target_id">
-        <option value="6fa37677-5442-4204-9f3c-3abda2c1d320">Attempt invalid</option>
       {{ range $key, $val := .assoc }}
         <option value="{{ $val.Assoc.ID }}">{{ $val.Assoc.Name }} | ({{ $val.AccountNumber }} | type: {{ $val.Assoc.Type }})</option>
       {{ end }}
+        <option value="fb4aba53-3094-439b-8e8b-db9657e3e7c0">AWS Super Secret (shouldn't have access)</option>
       </select>
     </div>
      <div class="form-group col-md-2">

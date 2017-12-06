@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -29,14 +30,32 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var config struct {
-	Setup             bool
-	AdminGroupMapping string
-	Encrypt           bool
-	EncryptPayload    string
-	KMSKey            string
-	Region            string
-	CFile             string
+var Config struct {
+	Setup               bool
+	AdminGroupMapping   string
+	Encrypt             bool
+	EncryptPayload      string
+	KMSKey              string
+	Region              string    `yaml:"aws_region"`
+	Duo                 DuoConfig `yaml:"duo"`
+	IssuerURL           string    `yaml:"issuer_url"`
+	IDPMetadataURL      string    `yaml:"idp_metadata_url"`
+	SAMLCertPath        string    `yaml:"saml_cert_path"`
+	SAMLKeyPath         string    `yaml:"saml_key_path"`
+	HighSecurity        bool      `yaml:"high_security"`
+	AdminIPRestrictions ipslice   `yaml:"admin_ip_restrictions"`
+}
+
+type ipslice []string
+
+func (i *ipslice) String() string {
+	return fmt.Sprintf("%d", *i)
+}
+
+// The second method is Set(value string) error
+func (i *ipslice) Set(value string) error {
+	*i = append(*i, value)
+	return nil
 }
 
 type DuoConfig struct {
@@ -44,26 +63,37 @@ type DuoConfig struct {
 	IKey    string `yaml:"ikey"`
 	ApiHost string `yaml:"apihost"`
 }
-type ConfigFile struct {
-	Duo            DuoConfig `yaml:"duo"`
-	IssuerURL      string    `yaml:"issuer_url"`
-	IDPMetadataURL string    `yaml:"idp_metadata_url"`
-	SAMLCertPath   string    `yaml:"saml_cert_path"`
-	SAMLKeyPath    string    `yaml:"saml_key_path"`
-}
 
 var ddb *dynamodb.DynamoDB
 var KMSClient *kms.KMS
-var ParsedConfigFile ConfigFile
+var configPath string
+
+// buildDefaultConfigItem uses the following operation: ENV --> arg --> yaml
+func buildDefaultConfigItem(envKey string, def string) (val string) {
+	val = os.Getenv(envKey)
+	if val == "" {
+		val = def
+	}
+	return
+}
 
 func init() {
-	flag.BoolVar(&config.Setup, "setup", false, "perform initial app setup")
-	flag.BoolVar(&config.Encrypt, "encrypt", false, "encrypts a payload (typically for storing federated credentials")
-	flag.StringVar(&config.AdminGroupMapping, "admin-group-mapping", "", "IdP group name that ties membership administrators")
-	flag.StringVar(&config.EncryptPayload, "encrypt-payload", "", "payload to encrypt")
-	flag.StringVar(&config.KMSKey, "kmskey", "", "kms key ID used to encrypt payload")
-	flag.StringVar(&config.Region, "region", "us-east-1", "the AWS region where services reside that host cooper")
-	flag.StringVar(&config.CFile, "config", "config.yaml", "yaml config file")
+	flag.BoolVar(&Config.Setup, "setup", false, "perform initial app setup")
+	flag.BoolVar(&Config.Encrypt, "encrypt", false, "encrypts a payload (typically for storing federated credentials")
+	flag.BoolVar(&Config.HighSecurity, "high-security", func() bool {
+		b, err := strconv.ParseBool(buildDefaultConfigItem("HIGH_SECURITY", "true"))
+		return err == nil && b
+	}(), "encrypts a payload (typically for storing federated credentials")
+	flag.Var(&Config.AdminIPRestrictions, "admin-ip-restrictions", "restrict admin actions to these supplied CIDRS")
+	flag.StringVar(&Config.AdminGroupMapping, "admin-group-mapping", "", "IdP group name that ties membership administrators")
+	flag.StringVar(&Config.EncryptPayload, "encrypt-payload", "", "payload to encrypt")
+	flag.StringVar(&Config.KMSKey, "kmskey", "", "kms key ID used to encrypt payload")
+	flag.StringVar(&Config.Region, "region", buildDefaultConfigItem("AWS_REGION", ""), "the AWS region where services reside that host cooper")
+	flag.StringVar(&Config.IssuerURL, "saml-issuer-url", buildDefaultConfigItem("SAML_ISSUER_URL", ""), "SAML Issuer URL")
+	flag.StringVar(&Config.IDPMetadataURL, "saml-idp-metadata-url", buildDefaultConfigItem("SAML_IDP_METADATA_URL", ""), "The Identity Provider's metadata URL")
+	flag.StringVar(&Config.SAMLCertPath, "saml-cert-path", buildDefaultConfigItem("SAML_CERT_PATH", ""), "Local certificate to sign SAML requests")
+	flag.StringVar(&Config.SAMLKeyPath, "saml-key-path", buildDefaultConfigItem("SAML_KEY_PATH", ""), "Local key to sign SAML requests")
+	flag.StringVar(&configPath, "config", "", "")
 }
 
 var funcMap = template.FuncMap{
@@ -82,24 +112,25 @@ func main() {
 	log.SetOutput(os.Stdout)
 	flag.Parse()
 
-	// config testing
-	source, err := ioutil.ReadFile(config.CFile)
+	// parse config file
+	source, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		panic(err)
+		log.Println("error reading config file:", err)
+	} else {
+		if len(source) > 0 {
+			err = yaml.Unmarshal(source, &Config)
+			if err != nil {
+				log.Println("could not parse yaml:", err)
+			}
+		}
 	}
-	err = yaml.Unmarshal(source, &ParsedConfigFile)
-	if err != nil {
-		panic(err)
-	}
-
-	// config testing
 
 	if os.Getenv("AWS_REGION") != "" {
-		config.Region = os.Getenv("AWS_REGION")
+		Config.Region = os.Getenv("AWS_REGION")
 	}
 
 	sess, err := session.NewSession(&aws.Config{
-		Region:     aws.String(config.Region),
+		Region:     aws.String(Config.Region),
 		MaxRetries: aws.Int(5),
 	})
 	if err != nil {
@@ -112,27 +143,27 @@ func main() {
 
 	// utility for encrypting federated user credentials
 	// maybe this could also be provided via an html form?
-	if config.Encrypt {
-		if config.KMSKey == "" {
+	if Config.Encrypt {
+		if Config.KMSKey == "" {
 			log.Println("must provide -kmskey")
 			return
 		}
-		if config.EncryptPayload == "" {
+		if Config.EncryptPayload == "" {
 			log.Println("must provide -encrypt-payload")
 			return
 		}
-		KMSEncrypt(KMSClient, config.KMSKey, config.EncryptPayload)
+		KMSEncrypt(KMSClient, Config.KMSKey, Config.EncryptPayload)
 		return
 	}
 
-	if config.Setup {
+	if Config.Setup {
 		log.Println("running setup..")
 		log.Println("creating DynamoDB tables")
 		CreateTables(ddb)
-		if config.AdminGroupMapping != "" {
-			err = AddAdminMapping(ddb, config.AdminGroupMapping)
+		if Config.AdminGroupMapping != "" {
+			err = AddAdminMapping(ddb, Config.AdminGroupMapping)
 			if err != nil {
-				log.Fatal(fmt.Sprintf("Could not add admin mapping %s - error %s", config.AdminGroupMapping, err))
+				log.Fatal(fmt.Sprintf("Could not add admin mapping %s - error %s", Config.AdminGroupMapping, err))
 			}
 		}
 		return
@@ -149,7 +180,7 @@ func main() {
 	gob.Register(Flash{})
 
 	// saml start
-	keyPair, err := tls.LoadX509KeyPair(ParsedConfigFile.SAMLCertPath, ParsedConfigFile.SAMLKeyPath)
+	keyPair, err := tls.LoadX509KeyPair(Config.SAMLCertPath, Config.SAMLKeyPath)
 	if err != nil {
 		panic(err) // TODO handle error
 	}
@@ -158,12 +189,12 @@ func main() {
 		panic(err) // TODO handle error
 	}
 
-	idpMetadataURL, err := url.Parse(ParsedConfigFile.IDPMetadataURL)
+	idpMetadataURL, err := url.Parse(Config.IDPMetadataURL)
 	if err != nil {
 		panic(err) // TODO handle error
 	}
 
-	rootURL, err := url.Parse(ParsedConfigFile.IssuerURL)
+	rootURL, err := url.Parse(Config.IssuerURL)
 	if err != nil {
 		panic(err) // TODO handle error
 	}

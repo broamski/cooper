@@ -179,14 +179,16 @@ func Becomer(ddb *dynamodb.DynamoDB, s *sts.STS, k *kms.KMS) gin.HandlerFunc {
 			return
 		}
 		if allowed {
-			duoAuthClient := NewDuoAuthClient(ParsedConfigFile.Duo)
+			if Config.HighSecurity {
+				duoAuthClient := NewDuoAuthClient(Config.Duo)
 
-			result, err := processSecondFactorDuo(duoAuthClient, username, form.SecondFactor)
-			if !result || err != nil {
-				flasher(session, "danger", err.Error())
-				c.Redirect(301, "/")
-				c.Abort()
-				return
+				result, err := processSecondFactorDuo(duoAuthClient, username, form.SecondFactor)
+				if !result || err != nil {
+					flasher(session, "danger", err.Error())
+					c.Redirect(301, "/")
+					c.Abort()
+					return
+				}
 			}
 
 			t, err := GetTarget(ddb, form.TargetID)
@@ -260,17 +262,19 @@ func TargetsAdd(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			return
 		}
 
-		secondFactor := c.DefaultPostForm("second_factor", "auto")
-		duoAuthClient := NewDuoAuthClient(ParsedConfigFile.Duo)
+		if Config.HighSecurity {
+			secondFactor := c.DefaultPostForm("second_factor", "auto")
+			duoAuthClient := NewDuoAuthClient(Config.Duo)
 
-		result, err := processSecondFactorDuo(duoAuthClient, username, secondFactor)
-		if !result || err != nil {
-			flasher(session, "danger", err.Error())
-			c.Redirect(301, "/targets")
-			c.Abort()
-			return
-		} else {
-			fmt.Println("2fa successfully completed")
+			result, err := processSecondFactorDuo(duoAuthClient, username, secondFactor)
+			if !result || err != nil {
+				flasher(session, "danger", err.Error())
+				c.Redirect(301, "/targets")
+				c.Abort()
+				return
+			} else {
+				fmt.Println("2fa successfully completed")
+			}
 		}
 
 		form.ID = uuid.NewV4().String()
@@ -300,17 +304,19 @@ func TargetsRemove(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			return
 		}
 
-		secondFactor := c.DefaultPostForm("second_factor", "auto")
-		duoAuthClient := NewDuoAuthClient(ParsedConfigFile.Duo)
+		if Config.HighSecurity {
+			secondFactor := c.DefaultPostForm("second_factor", "auto")
+			duoAuthClient := NewDuoAuthClient(Config.Duo)
 
-		result, err := processSecondFactorDuo(duoAuthClient, username, secondFactor)
-		if !result || err != nil {
-			flasher(session, "danger", err.Error())
-			c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.ID))
-			c.Abort()
-			return
-		} else {
-			fmt.Println("2fa successfully completed")
+			result, err := processSecondFactorDuo(duoAuthClient, username, secondFactor)
+			if !result || err != nil {
+				flasher(session, "danger", err.Error())
+				c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.ID))
+				c.Abort()
+				return
+			} else {
+				fmt.Println("2fa successfully completed")
+			}
 		}
 
 		err = RemoveTarget(ddb, form.ID)
@@ -343,17 +349,19 @@ func TargetsUpdate(ddb *dynamodb.DynamoDB) gin.HandlerFunc {
 			return
 		}
 
-		secondFactor := c.DefaultPostForm("second_factor", "auto")
-		duoAuthClient := NewDuoAuthClient(ParsedConfigFile.Duo)
+		if Config.HighSecurity {
+			secondFactor := c.DefaultPostForm("second_factor", "auto")
+			duoAuthClient := NewDuoAuthClient(Config.Duo)
 
-		result, err := processSecondFactorDuo(duoAuthClient, username, secondFactor)
-		if !result || err != nil {
-			flasher(session, "danger", err.Error())
-			c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.ID))
-			c.Abort()
-			return
-		} else {
-			fmt.Println("2fa successfully completed")
+			result, err := processSecondFactorDuo(duoAuthClient, username, secondFactor)
+			if !result || err != nil {
+				flasher(session, "danger", err.Error())
+				c.Redirect(302, fmt.Sprintf("/targets/details/%s", form.ID))
+				c.Abort()
+				return
+			} else {
+				fmt.Println("2fa successfully completed")
+			}
 		}
 
 		err = UpdateTarget(ddb, form)
